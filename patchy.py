@@ -1,3 +1,4 @@
+#! /usr/bin/python2
 # Patchy, takes a program as an argument
 
 import sys
