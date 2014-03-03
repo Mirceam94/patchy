@@ -13,7 +13,7 @@ module Patchy
       out = "Instructions:\n\n"
 
       out << @@instructions.map do |i|
-        "    #{i["mnemonic"].ljust(6)} #{i["name"].ljust(32)} #{i["desc"]}"
+        "    #{i[:mnemonic].ljust(6)} #{i[:name].ljust(32)} #{i[:desc]}"
       end.join("\n")
     end
 
