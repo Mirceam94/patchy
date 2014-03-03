@@ -28,11 +28,11 @@ module Patchy
             puts "Parsing line [#{line}]..." if @debug
 
             @arch.instructions.each do |i|
-              if /\s*#{i[:mnemonic]}\s*/ =~ line
+              if /\s*#{i["mnemonic"]}\s*/ =~ line
 
-                parsed = i[:op]
+                parsed = i["op"]
 
-                puts "  - Found i #{i[:name]} in line #{line}" if @debug
+                puts "  - Found i #{i["name"]} in line #{line}" if @debug
                 puts "  - Parsed to #{parsed}" if @debug
 
               end
