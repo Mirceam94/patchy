@@ -103,7 +103,7 @@ module Patchy
             )
 
           puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
-          puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
+          puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('h*')[0]}" if @debug
           puts "    - #{bin_ins}" if @debug
 
           # Return the first instruction matched
