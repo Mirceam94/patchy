@@ -1,14 +1,13 @@
-require "trollop"
-require_relative "../architecture.rb"
+require "yaml"
 
 module Patchy
   class Assembler
 
     attr_accessor :debug
 
-    def initialize
-      @arch = Patchy::Architecture.new
-      @debug = false
+    def initialize(debug=false)
+      @debug = debug
+      @instructions = YAML.load_file("lib/arch/instructions.yaml")
     end
 
     def assemble(source)
@@ -27,7 +26,7 @@ module Patchy
 
             puts "Parsing line [#{line}]..." if @debug
 
-            @arch.instructions.each do |i|
+            @instructions.each do |i|
               if /\s*#{i[:mnemonic]}\s*/ =~ line
 
                 parsed = i[:op]

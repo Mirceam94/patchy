@@ -1,7 +1,7 @@
 require "yaml"
 
 module Patchy
-  class Architecture
+  class CPU
 
     @@instructions = YAML.load_file("lib/arch/instructions.yaml")
 

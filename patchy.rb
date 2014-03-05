@@ -1,6 +1,8 @@
+$LOAD_PATH.unshift "."
+
 require "trollop"
-require_relative "lib/architecture.rb"
-require_relative "lib/tools/assembler.rb"
+require "lib/cpu"
+require "lib/tools/assembler"
 
 opts = Trollop::options do
   opt :info, "Display all available info"
@@ -16,15 +18,11 @@ if opts.info
   opts[:instructions] = true
 end
 
-arch = Patchy::Architecture.new
+patchy = Patchy::CPU.new
+assembler = Patchy::Assembler.new opts.debug
 
 if opts.instructions
-  puts arch.instructions_s
+  puts patchy.instructions_s
 elsif opts.assemble
-
-  # TODO: Move arch into virtual machine, since the assembler needs access
-  assembler = Patchy::Assembler.new
-  assembler.debug = opts.debug
-
   bin = assembler.assemble File.open(opts.assemble, "r")
 end
