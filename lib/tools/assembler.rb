@@ -11,7 +11,32 @@ module Patchy
       @cpu = Patchy::CPU.new debug
     end
 
-    def assemble(source)
+    def assemble(source, output_path="out.bin")
+      program_instructions = process_source(source)
+
+      write_output(program_instructions, output_path)
+      display_summary(program_instructions)
+    end
+
+    def write_output(instructions, output_path)
+      file = File.open(output_path, "wb")
+      instructions.each {|i| i.write(file)}
+    end
+
+    def display_summary(instructions)
+      puts generate_summary(instructions)
+    end
+
+    def generate_summary(instructions)
+      "\n" <<
+      "  Read #{instructions.length} instructions\n" <<
+      "  Output size #{instructions.length * 4} bytes\n" <<
+      "\n"
+    end
+
+    def process_source(source)
+      instructions = []
+
       while(rawLine = source.gets)
 
         rawLine.delete! "\n"      # String newlines
@@ -78,12 +103,15 @@ module Patchy
                 puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
                 puts "    - #{bin_ins}" if @debug
 
+                instructions.push bin_ins
+
               end
             end
           end # Line processing
         end #rawLine split
+      end # while loop
 
-      end
+      instructions
     end
 
     def read_src_arg(line)

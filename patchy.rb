@@ -24,5 +24,5 @@ assembler = Patchy::Assembler.new opts.debug
 if opts.instructions
   puts patchy.instructions_s
 elsif opts.assemble
-  bin = assembler.assemble File.open(opts.assemble, "r")
+  bin = assembler.assemble File.open(opts.assemble, "r"), opts[:out]
 end
