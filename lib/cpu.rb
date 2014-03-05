@@ -20,8 +20,7 @@ module Patchy
     def initialize(debug=false)
       @debug = debug
       @halt = false
-      @cylces = 0
-      @cpu_cycles = 0
+      @cycles = 0
 
       puts "- Initializing CPU" if @debug
 
@@ -125,6 +124,9 @@ module Patchy
         elapsed = ((Time.now - start) * 1000000).to_i
         puts "#{elapsed - 1000000}us overrun!" if elapsed > 1000000
       end
+
+    rescue SystemExit, Interrupt
+      dump_core
     end
 
     # The heart of the beast
@@ -134,7 +136,7 @@ module Patchy
     end
 
     def inc_cycles
-      @cylces += 1
+      @cycles += 1
     end
 
     def inc_pc
@@ -152,6 +154,23 @@ module Patchy
     # TODO: Provide boundes-checking when setting registers
     def reg_dp=(val)
       @registers[:dp] = val
+    end
+
+    def dump_core
+      puts generate_core_dump
+    end
+
+    def generate_core_dump
+      dump = "\n\n"
+      dump << "  Registers\n"
+
+      @registers.each do |name, val|
+        dump << "    #{name}: 0x#{val.bdata.to_binary_s.unpack('h*')[0]}\n"
+      end
+
+      dump << "\n\n  Ran #{@cycles} cycles"
+
+      dump
     end
   end
 end
