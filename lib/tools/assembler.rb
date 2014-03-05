@@ -11,16 +11,10 @@ module Patchy
       @cpu = Patchy::CPU.new debug
     end
 
-    def assemble(source, output_path="out.bin")
+    def assemble(source)
       program_instructions = process_source(source)
-
-      write_output(program_instructions, output_path)
       display_summary(program_instructions)
-    end
-
-    def write_output(instructions, output_path)
-      file = File.open(output_path, "wb")
-      instructions.each {|i| i.write(file)}
+      program_instructions
     end
 
     def display_summary(instructions)
@@ -30,7 +24,7 @@ module Patchy
     def generate_summary(instructions)
       "\n" <<
       "  Read #{instructions.length} instructions\n" <<
-      "  Output size #{instructions.length * 4} bytes\n" <<
+      "  Program size #{instructions.length * 4} bytes\n" <<
       "\n"
     end
 
