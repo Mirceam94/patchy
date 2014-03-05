@@ -77,7 +77,7 @@ module Patchy
 
                 puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
                 puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
-                puts "    - #{bin_ins}"
+                puts "    - #{bin_ins}" if @debug
 
               end
             end
