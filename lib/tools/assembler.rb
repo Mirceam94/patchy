@@ -40,36 +40,30 @@ module Patchy
                 # a source, we can find them manually.
                 if i[:args]
                   if i[:args][0]
-                    arg = read_src_arg(line)
                     type = i[:args][0][:type]
                     name = i[:args][0][:name]
 
-                    if not arg
-                      raise "Required argument missing!\n[#{type} - #{name}]"
-                    end
+                    arg_raw = read_src_arg(line)
+                    arg = process_arg(arg_raw, type, name)
 
-                    # We have to switch through, to store addresses and ports
-                    # properly
                     if type == "register"
-                      src = process_arg(type, arg)
+                      src = arg
                     elsif ["address", "port", "immediate"].include? type
-                      immediate = process_arg(type, arg)
+                      immediate = arg
                     end
                   end
 
                   if i[:args][1]
-                    arg = read_dest_arg(line)
                     type = i[:args][1][:type]
                     name = i[:args][1][:name]
 
-                    if not dest
-                      raise "Required argument missing!\n[#{type} - #{name}]"
-                    end
+                    arg_raw = read_dest_arg(line)
+                    arg = process_arg(arg_raw, type, name)
 
-                     if type == "register"
-                      dest = process_arg(type, arg)
+                    if type == "register"
+                      dest = arg
                     elsif ["address", "port", "immediate"].include? type
-                      immediate = process_arg(type, arg)
+                      immediate = arg
                     end
                   end
                 end
@@ -83,6 +77,7 @@ module Patchy
 
                 puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
                 puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
+                puts "    - #{bin_ins}"
 
               end
             end
@@ -115,7 +110,11 @@ module Patchy
       dest
     end
 
-    def process_arg(type, arg)
+    def process_arg(arg, type, name)
+      if not arg
+        raise "Required argument missing!\n[#{type} - #{name}]"
+      end
+
       case type
       when "register" then process_arg_register(arg)
       when "address" then process_arg_address(arg)
@@ -177,13 +176,13 @@ module Patchy
     # numbers properly
     def read_number(str_num)
       if str_num.include?("b")
-        return str_num.to_i(2)
+        str_num.to_i(2)
       elsif str_num.include?("x")
-        return str_num.to_i(16)
+        str_num.to_i(16)
       elsif str_num[0] == "0"
-        return str_num.to_i(8)
+        str_num.to_i(8)
       else
-        return str_num.to_i(10)
+        str_num.to_i(10)
       end
     end
   end
