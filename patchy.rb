@@ -35,9 +35,9 @@ elsif opts.assemble
   bin = assembler.assemble File.open(opts.assemble, "r")
 
   if !opts.run
-    out_file = File.open(opts[:out], "w")
+    out_file = File.open(opts.out, "w")
     bin.each {|i| i.write(out_file)}
-    puts "  Wrote to #{opts[:out]}\n\n"
+    puts "  Wrote to #{opts.out}\n\n"
   end
 
 else
