@@ -5,6 +5,10 @@ module Patchy
 
     @@instructions = YAML.load_file("lib/arch/instructions.yaml")
 
+    def self.instructions
+      @@instructions
+    end
+
     def instructions
       @@instructions
     end

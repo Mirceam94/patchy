@@ -8,7 +8,6 @@ module Patchy
 
     def initialize(debug=false)
       @debug = debug
-      @instructions = YAML.load_file("lib/arch/instructions.yaml")
       @cpu = Patchy::CPU.new debug
     end
 
@@ -28,7 +27,7 @@ module Patchy
 
             puts "Parsing line [#{line}]..." if @debug
 
-            @instructions.each do |i|
+            Patchy::CPU.instructions.each do |i|
               if /\s*#{i[:mnemonic]}\s*/ =~ line
 
                 src = 0x0
