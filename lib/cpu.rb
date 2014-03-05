@@ -1,6 +1,6 @@
-require "lib/cpu/instruction"
-require "lib/cpu/instruction_set"
-require "lib/cpu/instruction_cache"
+require "lib/cpu/instructions/instruction"
+require "lib/cpu/instructions/instruction_set"
+require "lib/cpu/instructions/instruction_cache"
 require "lib/cpu/register"
 require "lib/cpu/ram"
 
@@ -11,7 +11,7 @@ module Patchy
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
     #       cache, and divide it by 8 for actual CPU-stepping
-    @@frequencyHz = 80
+    @@frequencyHz = 8000
 
     def self.frequency
       @@frequencyHz
@@ -168,9 +168,7 @@ module Patchy
         dump << "    #{name}: 0x#{val.bdata.to_binary_s.unpack('h*')[0]}\n"
       end
 
-      dump << "\n\n  Ran #{@cycles} cycles"
-
-      dump
+      dump << "\n  Ran #{@cycles} cycles"
     end
   end
 end
