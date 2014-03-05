@@ -2,6 +2,9 @@ require "bindata"
 
 module Patchy
   class CPU
+
+    # Stored as Opcode-Dest-Src-Immediate
+    # Or 00000000-0000-0000-0000000000000000
     class Instruction < BinData::Record
       endian :little
 

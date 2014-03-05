@@ -49,5 +49,6 @@ else
 end
 
 if (opts.assemble and opts.run) or bin
-  # ...
+  patchy.load_instructions(bin)
+  patchy.run()
 end
