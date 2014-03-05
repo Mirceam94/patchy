@@ -6,27 +6,25 @@ module Patchy
     class Register < BinData::Record
       endian :little
 
-      attr_reader :address
-
-      def initialize(address)
-        @address = address
-      end
+      # Addresses should be explicitly specified for registers exposed to the
+      # instruction set!
+      attr_accessor :address
 
       def data=(value)
-        self[:data].assign(value)
+        self[:bdata].assign(value)
       end
     end
 
     class Register8 < Register
-      bit8 :data
+      bit8 :bdata, initial_value: 0
     end
 
     class Register16 < Register
-      bit16 :data
+      bit16 :bdata, initial_value: 0
     end
 
     class Register32 < Register
-      bit32 :data
+      bit32 :bdata, initial_value: 0
     end
 
   end

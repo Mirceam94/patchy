@@ -1,14 +1,17 @@
-require "lib/cpu/instruction.rb"
-require "lib/cpu/instruction_set.rb"
-require "lib/cpu/register.rb"
-require "lib/cpu/ram.rb"
+require "lib/cpu/instruction"
+require "lib/cpu/instruction_set"
+require "lib/cpu/instruction_cache"
+require "lib/cpu/register"
+require "lib/cpu/ram"
 
 module Patchy
   class CPU
 
     attr_reader :registers, :ram
 
-    @@frequencyHz = 10
+    # TODO: Move the clock out of the CPU, since we use it in the instruction
+    #       cache, and divide it by 8 for actual CPU-stepping
+    @@frequencyHz = 80
 
     def self.frequency
       @@frequencyHz
@@ -17,41 +20,62 @@ module Patchy
     def initialize(debug=false)
       @debug = debug
       @halt = false
+      @cylces = 0
+      @cpu_cycles = 0
 
       puts "- Initializing CPU" if @debug
 
       initialize_registers
       initialize_memory
+      initialize_modules
     end
 
     def initialize_registers
       puts "- Initializing registers" if @debug
 
       @registers = {
-        :a => Patchy::CPU::Register16.new(0x0),
-        :b => Patchy::CPU::Register16.new(0x1),
-        :c => Patchy::CPU::Register16.new(0x2),
-        :d => Patchy::CPU::Register16.new(0x3),
-        :e => Patchy::CPU::Register16.new(0x4),
-        :f => Patchy::CPU::Register16.new(0x5),
-        :g => Patchy::CPU::Register16.new(0x6),
-        :h => Patchy::CPU::Register16.new(0x7),
+        :a => Patchy::CPU::Register16.new,
+        :b => Patchy::CPU::Register16.new,
+        :c => Patchy::CPU::Register16.new,
+        :d => Patchy::CPU::Register16.new,
+        :e => Patchy::CPU::Register16.new,
+        :f => Patchy::CPU::Register16.new,
+        :g => Patchy::CPU::Register16.new,
+        :h => Patchy::CPU::Register16.new,
 
         # Current page in RAM; pages are 64KB in size
-        :dp => Patchy::CPU::Register8.new(0xa),
+        :dp => Patchy::CPU::Register8.new,
 
         # Stack page pointer; the stack gets a page to itself
-        :sp => Patchy::CPU::Register8.new(0xb),
+        :sp => Patchy::CPU::Register8.new,
 
-        :flgs => Patchy::CPU::Register8.new(0xe),
-        :pc => Patchy::CPU::Register16.new(0xf)
+        :flgs => Patchy::CPU::Register8.new,
+        :pc => Patchy::CPU::Register16.new
       }
+
+      @registers[:a].address = 0x0
+      @registers[:b].address = 0x1
+      @registers[:c].address = 0x2
+      @registers[:d].address = 0x3
+      @registers[:e].address = 0x4
+      @registers[:g].address = 0x5
+      @registers[:g].address = 0x6
+      @registers[:h].address = 0x7
+      @registers[:dp].address = 0xa
+      @registers[:sp].address = 0xb
+      @registers[:flgs].address = 0xe
+      @registers[:pc].address = 0xf
     end
 
     def initialize_memory
       puts "- Initializing RAM [#{Patchy::RAM.size} bytes]" if @debug
 
       @ram = Patchy::RAM.new
+    end
+
+    def initialize_modules
+      puts "- Initializing instruction cache" if @debug
+      @instruction_cache = Patchy::InstructionCache.new self
     end
 
     def load_instructions(instructions, offset=0)
@@ -66,6 +90,7 @@ module Patchy
     end
 
     def run
+      puts "  Starting execution at #{@@frequencyHz}Hz" if @debug
       cycle_max_time = 1.0 / @@frequencyHz
 
       loop do
@@ -73,10 +98,17 @@ module Patchy
         start = Time.now
 
         # Cycle execution, with temporal padding
-        @@frequencyHz.times do
+        @@frequencyHz.times do |i|
           cycle_start = Time.now
 
-          cycle_execute
+          # Clock instruction cache
+          @instruction_cache.cycle
+
+          # Only perform a CPU op every 8th clock cycle; this gives the
+          # instruction cache time to fill and keep up with us
+          if i % 8 == 0
+            cycle_execute
+          end
 
           # Halt check in here as well
           break if @halt
@@ -97,7 +129,29 @@ module Patchy
 
     # The heart of the beast
     def cycle_execute
-      @halt = true
+      inc_pc
+      inc_cycles
+    end
+
+    def inc_cycles
+      @cylces += 1
+    end
+
+    def inc_pc
+      @registers[:pc].bdata += 1
+    end
+
+    def reg_pc
+      @registers[:pc].bdata
+    end
+
+    def reg_dp
+      @registers[:dp].bdata
+    end
+
+    # TODO: Provide boundes-checking when setting registers
+    def reg_dp=(val)
+      @registers[:dp] = val
     end
   end
 end

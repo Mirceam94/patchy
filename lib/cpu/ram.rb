@@ -21,6 +21,22 @@ module Patchy
 
     def initialize
       @raw = NArray.sint(0x1000000 / 16)
+      @blocked = false
+    end
+
+    # Blocking RAM ensures only one party can read from it at a time (just
+    # like in hardware). This is not enforced in any way! Classes accessing
+    # us for I/O need to check if we are blocked before doing so.
+    def blocked?
+      @blocked
+    end
+
+    def block
+      @blocked = true
+    end
+
+    def unblock
+      @blocked = false
     end
 
     def resolve(dp8, address16)
