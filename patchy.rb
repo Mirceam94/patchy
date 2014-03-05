@@ -4,13 +4,18 @@ require "trollop"
 require "lib/cpu"
 require "lib/tools/assembler"
 
-opts = Trollop::options do
+p = Trollop::Parser.new do
   opt :info, "Display all available info"
   opt :instructions, "Display instruction set"
   opt :arch, "Display architecture description"
   opt :assemble, "Assemble source", :type => :string
   opt :out, "Output file", :type => :string, :default => "out.bin"
   opt :debug, "Verbose debug logging"
+end
+
+opts = Trollop::with_standard_exception_handling p do
+  raise Trollop::HelpNeeded if ARGV.empty?
+  p.parse ARGV
 end
 
 if opts.info
