@@ -52,66 +52,70 @@ module Patchy
 
             puts "Parsing line [#{line}]..." if @debug
 
-            Patchy::CPU.instructions.each do |i|
-              if /\s*#{i[:mnemonic]}\s*/ =~ line
-
-                src = 0x0
-                dest = 0x0
-                immediate = 0x0
-
-                # Because instructions can take up to two arguments, and the
-                # first is always a destination while the second is always
-                # a source, we can find them manually.
-                if i[:args]
-                  if i[:args][0]
-                    type = i[:args][0][:type]
-                    name = i[:args][0][:name]
-
-                    arg_raw = read_src_arg(line)
-                    arg = process_arg(arg_raw, type, name)
-
-                    if type == "register"
-                      src = arg
-                    elsif ["address", "port", "immediate"].include? type
-                      immediate = arg
-                    end
-                  end
-
-                  if i[:args][1]
-                    type = i[:args][1][:type]
-                    name = i[:args][1][:name]
-
-                    arg_raw = read_dest_arg(line)
-                    arg = process_arg(arg_raw, type, name)
-
-                    if type == "register"
-                      dest = arg
-                    elsif ["address", "port", "immediate"].include? type
-                      immediate = arg
-                    end
-                  end
-                end
-
-                bin_ins = Patchy::CPU::Instruction.new(
-                  :opcode => i[:op],
-                  :dest => dest,
-                  :src => src,
-                  :immediate => immediate
-                  )
-
-                puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
-                puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
-                puts "    - #{bin_ins}" if @debug
-
-                instructions.push bin_ins
-
-              end
-            end
-          end # Line processing
-        end #rawLine split
-      end # while loop
+            instructions.push parse_line line
+          end
+        end
+      end
 
       instructions
+    end
+
+    def parse_line(line)
+      Patchy::CPU.instructions.each do |i|
+        if /\s*#{i[:mnemonic]}\s*/ =~ line
+
+          src = 0x0
+          dest = 0x0
+          immediate = 0x0
+
+          # Because instructions can take up to two arguments, and the
+          # first is always a destination while the second is always
+          # a source, we can find them manually.
+          if i[:args]
+            if i[:args][0]
+              type = i[:args][0][:type]
+              name = i[:args][0][:name]
+
+              arg_raw = read_src_arg(line)
+              arg = process_arg(arg_raw, type, name)
+
+              if type == "register"
+                src = arg
+              elsif ["address", "port", "immediate"].include? type
+                immediate = arg
+              end
+            end
+
+            if i[:args][1]
+              type = i[:args][1][:type]
+              name = i[:args][1][:name]
+
+              arg_raw = read_dest_arg(line)
+              arg = process_arg(arg_raw, type, name)
+
+              if type == "register"
+                dest = arg
+              elsif ["address", "port", "immediate"].include? type
+                immediate = arg
+              end
+            end
+          end
+
+          bin_ins = Patchy::CPU::Instruction.new(
+            :opcode => i[:op],
+            :dest => dest,
+            :src => src,
+            :immediate => immediate
+            )
+
+          puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
+          puts "  - Parsed to #{bin_ins.to_binary_s.unpack('h*')}" if @debug
+          puts "    - #{bin_ins}" if @debug
+
+          # Return the first instruction matched
+          return bin_ins
+        end
+      end
     end
 
     def read_src_arg(line)
