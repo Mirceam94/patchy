@@ -11,7 +11,7 @@ module Patchy
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
     #       cache, and divide it by 8 for actual CPU-stepping
-    @@frequencyHz = 80
+    @@frequencyHz = 8000
 
     def self.frequency
       @@frequencyHz
@@ -149,18 +149,22 @@ module Patchy
         immediate: immediateRaw
         )
 
-      # For now, just halt when needed
+      # Increase cycles now, so our halt message shows the true count if neeed
+      inc_cycles
+
       if instruction.opcode == 0xff
         halt
+      else
+        inc_pc
       end
-
-      inc_pc
-      inc_cycles
     end
 
     def halt
       @halt = true
-      puts "  Halted\n\n"
+
+      puts "  Halted"
+      dump_core
+      puts "\n"
     end
 
     def inc_cycles
@@ -190,7 +194,7 @@ module Patchy
     end
 
     def generate_core_dump
-      dump = "\n\n"
+      dump = "\n"
       dump << "  Registers\n"
 
       @registers.each do |name, val|
