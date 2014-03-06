@@ -74,7 +74,7 @@ module Patchy
               arg = process_arg(arg_raw, type, name)
 
               if type == "register"
-                src = arg
+                dest = arg
               elsif ["address", "port", "immediate"].include? type
                 immediate = arg
               end
@@ -88,7 +88,7 @@ module Patchy
               arg = process_arg(arg_raw, type, name)
 
               if type == "register"
-                dest = arg
+                src = arg
               elsif ["address", "port", "immediate"].include? type
                 immediate = arg
               end

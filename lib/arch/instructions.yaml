@@ -9,7 +9,6 @@
     :mnemonic: "hlt"
     :op: 0xff
 
-  # Register/Memory operations
   - :name: "Move"
     :mnemonic: "mov"
     :op: 0x01
@@ -20,6 +19,7 @@
       - :type: register
         :name: "source"
 
+  # Memory operations
   - :name: "Load immediate"
     :mnemonic: "ldi"
     :op: 0x02

@@ -1,6 +1,7 @@
 require "lib/cpu/instructions/instruction"
 require "lib/cpu/instructions/instruction_set"
 require "lib/cpu/instructions/instruction_cache"
+require "lib/cpu/decoder"
 require "lib/cpu/register"
 require "lib/cpu/ram"
 
@@ -8,6 +9,7 @@ module Patchy
   class CPU
 
     attr_reader :registers, :ram
+    attr_accessor :needs_halt
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
     #       cache, and divide it by 8 for actual CPU-stepping
@@ -20,6 +22,7 @@ module Patchy
     def initialize(debug=false)
       @debug = debug
       @halt = false
+      @needs_halt = false
       @cycles = 0
 
       puts "- Initializing CPU" if @debug
@@ -67,14 +70,13 @@ module Patchy
     end
 
     def initialize_memory
-      puts "- Initializing RAM [#{Patchy::RAM.size} bytes]" if @debug
-
       @ram = Patchy::RAM.new
+      puts "  Patchy RAM initialized [#{Patchy::RAM.size} bytes]" if @debug
     end
 
     def initialize_modules
-      puts "- Initializing instruction cache" if @debug
       @instruction_cache = Patchy::InstructionCache.new self
+      @decoder = Patchy::Decoder.new self
     end
 
     def load_instructions(instructions, offset=0)
@@ -149,14 +151,33 @@ module Patchy
         immediate: immediateRaw
         )
 
+      # Pass instruction into decoder
+      # TODO: Implement pipeline
+      @decoder.decode instruction
+
       # Increase cycles now, so our halt message shows the true count if neeed
       inc_cycles
 
-      if instruction.opcode == 0xff
-        halt
-      else
-        inc_pc
+      halt if @needs_halt
+      inc_pc if !@halt
+    end
+
+    def get_reg_by_address(address)
+      @registers.each do |name, reg|
+        return reg.bdata if reg.address == address
       end
+
+      raise "Unknown register address #{address}"
+    end
+
+    def set_reg_by_address(value, address)
+      @registers.each do |name, reg|
+        if reg.address == address
+          return reg.bdata = value
+        end
+      end
+
+      raise "Unknown register address #{address}"
     end
 
     def halt
@@ -198,7 +219,7 @@ module Patchy
       dump << "  Registers\n"
 
       @registers.each do |name, val|
-        dump << "    #{name}: 0x#{val.bdata.to_binary_s.unpack('h*')[0]}\n"
+        dump << "    #{name}: 0x#{val.bdata.to_binary_s.unpack('H*')[0]}\n"
       end
 
       dump << "\n  Ran #{@cycles} cycles"
