@@ -131,6 +131,25 @@ module Patchy
 
     # The heart of the beast
     def cycle_execute
+
+      ##
+      ## I'm too lazy to actually make this super-scalar now, so for the time
+      ## being we'll just go with a single execution pathway (and in-place!)
+      ##
+
+      # Grab instruction
+      instructionRaw = @instruction_cache.instructionA
+      immediateRaw = @instruction_cache.immediateA
+
+      # Read it properly! :D
+      instruction = Patchy::CPU::Instruction.new
+      instruction.read(((instructionRaw << 16) | immediateRaw).to_s(16))
+
+      puts ((instructionRaw << 16) | immediateRaw).to_s(2)
+
+      # Print!
+      puts instruction
+
       inc_pc
       inc_cycles
     end
@@ -139,8 +158,9 @@ module Patchy
       @cycles += 1
     end
 
+    # NOTE: This advances the PC by two, since instructions are two words!
     def inc_pc
-      @registers[:pc].bdata += 1
+      @registers[:pc].bdata += 2
     end
 
     def reg_pc

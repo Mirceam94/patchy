@@ -32,6 +32,8 @@ require "lib/cpu/register"
 module Patchy
   class InstructionCache
 
+    attr_reader :cycles
+
     def initialize(cpu)
       @cpu = cpu
 
