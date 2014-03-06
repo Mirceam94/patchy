@@ -105,7 +105,7 @@ module Patchy
 
           # Only perform a CPU op every 8th clock cycle; this gives the
           # instruction cache time to fill and keep up with us
-          if i % 8 == 0
+          if i % 8 == 0 and i != 0
             cycle_execute
           end
 

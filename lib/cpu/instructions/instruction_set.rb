@@ -9,10 +9,6 @@ module Patchy
       @@instructions
     end
 
-    def instructions
-      @@instructions
-    end
-
     def instructions_s
       out = "Instructions:\n\n"
 

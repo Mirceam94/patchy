@@ -49,31 +49,23 @@ module Patchy
 
     # The magic! <3 Feel the larv
     def cycle
-      @cycles += 1
 
       # Fetch instructions relative to DP and PC
       pc = @cpu.reg_pc
       dp = @cpu.reg_dp
 
-      # If RAM is blocked (CPU is using it), then we can't read ;( Sad.
-      # In the hardware, this is simulated by blocking the CLK lines into
-      # our registers.
-      return if @cpu.ram.blocked?
-
-      @cpu.ram.block
       instruction_word = @cpu.ram.read dp, pc + @offset
-      @cpu.ram.unblock
 
       # Load up register based on offset and shift register
       # In the hardware, the shift register activates the proper buffer between
       # the RAM outputs and one of our 16bit registers
-      if @shift_reg && 0b0001
+      if @shift_reg & 0b0001 > 0
         @insA_wordM.data = instruction_word
-      elsif @shift_reg && 0b0010
+      elsif @shift_reg & 0b0010 > 0
         @insA_wordL.data = instruction_word
-      elsif @shift_reg && 0b0100
+      elsif @shift_reg & 0b0100 > 0
         @insB_wordM.data = instruction_word
-      elsif @shift_reg && 0b1000
+      elsif @shift_reg & 0b1000 > 0
         @insB_wordL.data = instruction_word
       end
 
@@ -86,22 +78,24 @@ module Patchy
         @offset = 0
         @shift_reg = 0b0001
       end
+
+      @cycles += 1
     end
 
     def instructionA
-      @insA_wordM.data
+      @insA_wordM.bdata
     end
 
     def immediateA
-      @insA_wordL.data
+      @insA_wordL.bdata
     end
 
     def instructionB
-      @insB_wordM.data
+      @insB_wordM.bdata
     end
 
     def immediateB
-      @insB_wordL.data
+      @insB_wordL.bdata
     end
   end
 end
