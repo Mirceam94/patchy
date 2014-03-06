@@ -96,14 +96,14 @@ module Patchy
           end
 
           bin_ins = Patchy::CPU::Instruction.new(
-            :opcode => i[:op],
-            :dest => dest,
-            :src => src,
-            :immediate => immediate
+            opcode: i[:op],
+            dest: dest,
+            src: src,
+            immediate: immediate
             )
 
           puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
-          puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('b*')[0]}" if @debug
+          puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('h*')[0]}" if @debug
           puts "    - #{bin_ins}" if @debug
 
           # Return the first instruction matched

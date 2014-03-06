@@ -62,13 +62,13 @@ module Patchy
       # In the hardware, the shift register activates the proper buffer between
       # the RAM outputs and one of our 16bit registers
       if @shift_reg & 0b0001 > 0
-        @insA_wordM.data = instruction_word
+        @insA_wordM.value = instruction_word
       elsif @shift_reg & 0b0010 > 0
-        @insA_wordL.data = instruction_word
+        @insA_wordL.value = instruction_word
       elsif @shift_reg & 0b0100 > 0
-        @insB_wordM.data = instruction_word
+        @insB_wordM.value = instruction_word
       elsif @shift_reg & 0b1000 > 0
-        @insB_wordL.data = instruction_word
+        @insB_wordL.value = instruction_word
       end
 
       # Increase offset and shift register

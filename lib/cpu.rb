@@ -11,7 +11,7 @@ module Patchy
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
     #       cache, and divide it by 8 for actual CPU-stepping
-    @@frequencyHz = 8000
+    @@frequencyHz = 80
 
     def self.frequency
       @@frequencyHz
@@ -142,16 +142,25 @@ module Patchy
       immediateRaw = @instruction_cache.immediateA
 
       # Read it properly! :D
-      instruction = Patchy::CPU::Instruction.new
-      instruction.read(((instructionRaw << 16) | immediateRaw).to_s(16))
+      instruction = Patchy::CPU::Instruction.new(
+        opcode: instructionRaw >> 8,
+        dest: (instructionRaw >> 4) & 0b000000001111,
+        src:  instructionRaw & 0b0000000000001111,
+        immediate: immediateRaw
+        )
 
-      puts ((instructionRaw << 16) | immediateRaw).to_s(2)
-
-      # Print!
-      puts instruction
+      # For now, just halt when needed
+      if instruction.opcode == 0xff
+        halt
+      end
 
       inc_pc
       inc_cycles
+    end
+
+    def halt
+      @halt = true
+      puts "  Halted\n\n"
     end
 
     def inc_cycles

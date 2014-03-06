@@ -19,8 +19,10 @@ module Patchy
       @@size
     end
 
+    # Sadly, using uint causes strange issues when the MSB is 1...
+    # So we just go with 4-byte fields and treat it as 2-bytes. Whoop.
     def initialize
-      @raw = NArray.sint(0x1000000 / 16)
+      @raw = NArray.int(0x1000000 / 16)
     end
 
     def resolve(dp8, address16)

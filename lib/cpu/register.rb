@@ -10,7 +10,7 @@ module Patchy
       # instruction set!
       attr_accessor :address
 
-      def data=(value)
+      def value=(value)
         self[:bdata].assign(value)
       end
     end
