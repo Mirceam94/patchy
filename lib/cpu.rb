@@ -8,7 +8,7 @@ require "lib/cpu/ram"
 module Patchy
   class CPU
 
-    attr_reader :registers, :ram
+    attr_reader :registers, :ram, :stack_page
     attr_accessor :needs_halt
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
@@ -24,6 +24,7 @@ module Patchy
       @halt = false
       @needs_halt = false
       @cycles = 0
+      @stack_page = 0xff
 
       puts "- Initializing CPU" if @debug
 
@@ -48,8 +49,8 @@ module Patchy
         # Current page in RAM; pages are 64KB in size
         :dp => Patchy::CPU::Register8.new,
 
-        # Stack page pointer; the stack gets a page to itself
-        :sp => Patchy::CPU::Register8.new,
+        # Stack pointer; the stack is always on page 0xff, and grows upwards
+        :sp => Patchy::CPU::Register16.new,
 
         :flgs => Patchy::CPU::Register8.new,
         :pc => Patchy::CPU::Register16.new
@@ -192,6 +193,24 @@ module Patchy
       @cycles += 1
     end
 
+    def set_flag(flag, value)
+      bit = nil
+
+      case flag
+      when :lt then bit = 1
+      when :gt then bit = 2
+      when :eq then bit = 3
+      else
+        raise "Unknown flag: #{flag}"
+      end
+
+      if value
+        @registers[:flgs].bdata |= 1 << bit
+      else
+        @registers[:flgs].bdata &= ~(1 << bit)
+      end
+    end
+
     # NOTE: This advances the PC by two, since instructions are two words!
     def inc_pc
       @registers[:pc].bdata += 2
@@ -199,6 +218,18 @@ module Patchy
 
     def reg_pc
       @registers[:pc].bdata
+    end
+
+    def reg_sp
+      @registers[:sp].bdata
+    end
+
+    def inc_sp
+      @registers[:sp].bdata += 1
+    end
+
+    def dec_sp
+      @registers[:sp].bdata -= 1
     end
 
     def reg_dp

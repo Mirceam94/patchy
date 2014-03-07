@@ -157,7 +157,7 @@
         :name: "source"
 
   - :name: "OR registers"
-    :mnemonic: "and"
+    :mnemonic: "or"
     :op: 0x10
     :args:
       - :type: register
@@ -167,7 +167,7 @@
         :name: "source"
 
   - :name: "XOR registers"
-    :mnemonic: "and"
+    :mnemonic: "xor"
     :op: 0x11
     :args:
       - :type: register
@@ -181,14 +181,14 @@
     :op: 0x12
     :args:
       - :type: register
-        :name: "target"
+        :name: "destination"
 
   - :name: "Shift register right"
     :mnemonic: "shr"
     :op: 0x13
     :args:
       - :type: register
-        :name: "target"
+        :name: "destination"
 
   # Branching operations
   - :name: "Jump"
