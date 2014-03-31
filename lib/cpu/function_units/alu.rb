@@ -42,7 +42,7 @@ module Patchy
       end
 
       # Add dest with immediate, store sum in dest
-      def add(instruction)
+      def addi(instruction)
         dest = @cpu.get_reg_by_address(instruction.dest)
 
         @cpu.set_reg_by_address(instruction.immediate + dest, instruction.dest)
