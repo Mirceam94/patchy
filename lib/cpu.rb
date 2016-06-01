@@ -37,37 +37,57 @@ module Patchy
       puts "- Initializing registers" if @debug
 
       @registers = {
+
+        # General purpose
         :a => Patchy::CPU::Register16.new,
         :b => Patchy::CPU::Register16.new,
         :c => Patchy::CPU::Register16.new,
         :d => Patchy::CPU::Register16.new,
         :e => Patchy::CPU::Register16.new,
         :f => Patchy::CPU::Register16.new,
-        :g => Patchy::CPU::Register16.new,
-        :h => Patchy::CPU::Register16.new,
 
-        # Current page in RAM; pages are 64KB in size
-        :dp => Patchy::CPU::Register8.new,
+        # VRAM address
+        :px => Patchy::CPU::Register8.new,
 
-        # Stack pointer; the stack is always on page 0xff, and grows upwards
-        :sp => Patchy::CPU::Register16.new,
+        # Various flags (comparison, halt, etc)
+        :flgs => Patchy::CPU::Register16.new,
 
-        :flgs => Patchy::CPU::Register8.new,
-        :pc => Patchy::CPU::Register16.new
+        # Hardware I/O ports, read/write only respectively
+        :in1 => Patchy::CPU::Register16.new,
+        :in2 => Patchy::CPU::Register16.new,
+        :out1 => Patchy::CPU::Register16.new,
+        :out2 => Patchy::CPU::Register16.new,
+
+        # RAM address
+        :dp => Patchy::CPU::Register16.new,
+
+        # ROM address
+        :ip => Patchy::CPU::Register16.new,
+
+        # Return address for CALL
+        :ret => Patchy::CPU::Register16.new,
+
+        # Stack pointer (current head)
+        :sp => Patchy::CPU::Register16.new
       }
 
+      # Used to address registers in instructions
       @registers[:a].address = 0x0
       @registers[:b].address = 0x1
       @registers[:c].address = 0x2
       @registers[:d].address = 0x3
       @registers[:e].address = 0x4
-      @registers[:g].address = 0x5
-      @registers[:g].address = 0x6
-      @registers[:h].address = 0x7
-      @registers[:dp].address = 0xa
-      @registers[:sp].address = 0xb
-      @registers[:flgs].address = 0xe
-      @registers[:pc].address = 0xf
+      @registers[:f].address = 0x5
+      @registers[:px].address = 0x6
+      @registers[:flgs].address = 0x7
+      @registers[:in1].address = 0x8
+      @registers[:in2].address = 0x9
+      @registers[:out1].address = 0xA
+      @registers[:out2].address = 0xB
+      @registers[:dp].address = 0xC
+      @registers[:ip].address = 0xD
+      @registers[:ret].address = 0xE
+      @registers[:sp].address = 0xF
     end
 
     def initialize_memory
@@ -150,7 +170,7 @@ module Patchy
         dest: (instructionRaw >> 4) & 0b000000001111,
         src:  instructionRaw & 0b0000000000001111,
         immediate: immediateRaw
-        )
+      )
 
       # Pass instruction into decoder
       # TODO: Implement pipeline

@@ -9,7 +9,9 @@
     :mnemonic: "hlt"
     :op: 0xff
 
-  - :name: "Move"
+  # Memory operations
+  - :name: "Move Rd into Rs"
+    :desc: "Rd -> Rs"
     :mnemonic: "mov"
     :op: 0x01
     :args:
@@ -19,8 +21,8 @@
       - :type: register
         :name: "source"
 
-  # Memory operations
-  - :name: "Load immediate"
+  - :name: "Load immediate into Rd"
+    :desc: "I -> Rd"
     :mnemonic: "ldi"
     :op: 0x02
     :args:
@@ -30,94 +32,93 @@
       - :type: immediate
         :name: "immediate"
 
-  - :name: "Load RAM"
+  - :name: "Load RAM[DP] into Rd"
+    :desc: "RAM[DP] -> Rd"
     :mnemonic: "ldm"
     :op: 0x03
     :args:
       - :type: register
         :name: "destination"
 
-      - :type: address
-        :name: "RAM address relative to DP"
-
-  - :name: "Store RAM"
-    :mnemonic: "store"
+  - :name: "Load VRAM[PX] into Rd"
+    :desc: "VRAM[PX] -> Rd"
+    :mnemonic: "lpx"
     :op: 0x04
     :args:
-      - :type: address
-        :name: "RAM address relative to DP"
-
       - :type: register
-        :name: "source"
+        :name: "destination"
 
-  # Stack operations
-  - :name: "Push register"
-    :desc: "Push register on stack"
-    :mnemonic: "push"
+  - :name: "Store Rs into VRAM[PX]"
+    :desc: "Rs -> VRAM[PX]"
+    :mnemonic: "spx"
     :op: 0x05
     :args:
       - :type: register
         :name: "source"
 
-  - :name: "Push immediate"
-    :desc: "Push immediate on stack"
-    :mnemonic: "pushi"
+  - :name: "Writes value in Rs to port Pd"
+    :desc: "Rs -> Pd"
+    :mnemonic: "out"
     :op: 0x06
     :args:
-      - :type: immediate
-        :name: "immediate"
+      - :type: register
+        :name: "source"
 
-  - :name: "Push RAM"
-    :desc: "Push RAM contents on stack"
-    :mnemonic: "pushm"
+      - :type: port
+        :name: "destination"
+
+  - :name: "Reads Ps value into Rd"
+    :desc: "Ps -> Rd"
+    :mnemonic: "in"
     :op: 0x07
     :args:
-      - :type: address
-        :name: "RAM address relative to DP"
+      - :type: port
+        :name: "source"
 
-  - :name: "Pop register"
-    :desc: "Pop stack contents into register"
-    :mnemonic: "pop"
-    :op: 0x08
-    :args:
       - :type: register
         :name: "destination"
 
-  - :name: "Pop RAM"
-    :desc: "Pop stack contents into RAM"
-    :mnemonic: "popm"
+  - :name: "Store RAM[DP] into Rs"
+    :desc: "RAM[DP] -> Rs"
+    :mnemonic: "str"
+    :op: 0x08
+    :args:
+      - :type: register
+        :name: "source"
+
+  # Stack operations
+  - :name: "Push register Rs onto stack"
+    :desc: "Rs -> RAM[SP], SP--"
+    :mnemonic: "push"
     :op: 0x09
     :args:
-      - :type: address
-        :name: "RAM address relative to DP"
+      - :type: register
+        :name: "source"
+
+  - :name: "Pop stack contents into register Rd"
+    :desc: "RAM[SP] -> Rd, SP++"
+    :mnemonic: "pop"
+    :op: 0x0A
+    :args:
+      - :type: register
+        :name: "destination"
 
   # Arithmetic and logic operations
   - :name: "Add registers"
     :desc: "Rd = Rd + Rs"
     :mnemonic: "add"
-    :op: 0x0a
+    :op: 0x0B
     :args:
       - :type: register
         :name: "destination"
 
       - :type: register
         :name: "source"
-
-  - :name: "Add immediate"
-    :desc: "Rd = Rd + I"
-    :mnemonic: "addi"
-    :op: 0x0b
-    :args:
-      - :type: register
-        :name: "destination"
-
-      - :type: immediate
-        :name: "immediate"
 
   - :name: "Subtract registers"
     :desc: "Rd = Rd - Rs"
     :mnemonic: "sub"
-    :op: 0x0c
+    :op: 0x0C
     :args:
       - :type: register
         :name: "destination"
@@ -125,20 +126,9 @@
       - :type: register
         :name: "source"
 
-  - :name: "Subtract immediate"
-    :desc: "Rd = Rd - I"
-    :mnemonic: "subi"
-    :op: 0x0d
-    :args:
-      - :type: register
-        :name: "destination"
-
-      - :type: immediate
-        :name: "immediate"
-
   - :name: "Compare registers"
     :mnemonic: "cmp"
-    :op: 0x0e
+    :op: 0x0D
     :args:
       - :type: register
         :name: "register a"
@@ -147,8 +137,9 @@
         :name: "register b"
 
   - :name: "AND registers"
+    :desc: "Rd = Rd & Rs"
     :mnemonic: "and"
-    :op: 0x0f
+    :op: 0x0E
     :args:
       - :type: register
         :name: "destination"
@@ -157,8 +148,9 @@
         :name: "source"
 
   - :name: "OR registers"
+    :desc: "Rd = Rd | Rs"
     :mnemonic: "or"
-    :op: 0x10
+    :op: 0x0F
     :args:
       - :type: register
         :name: "destination"
@@ -167,8 +159,9 @@
         :name: "source"
 
   - :name: "XOR registers"
+    :desc: "Rd = Rd ^ Rs"
     :mnemonic: "xor"
-    :op: 0x11
+    :op: 0x10
     :args:
       - :type: register
         :name: "destination"
@@ -176,206 +169,88 @@
       - :type: register
         :name: "source"
 
-  - :name: "Shift register left"
+  - :name: "Shift left"
+    :desc: "Shifts Rd left in place"
     :mnemonic: "shl"
-    :op: 0x12
+    :op: 0x11
     :args:
       - :type: register
         :name: "destination"
 
-  - :name: "Shift register right"
+  - :name: "Shift right"
+    :desc: "Shifts Rd right in place"
     :mnemonic: "shr"
-    :op: 0x13
+    :op: 0x12
     :args:
       - :type: register
         :name: "destination"
 
   # Branching operations
   - :name: "Jump"
-    :desc: "Jump to address in register"
+    :desc: "Jump to address in Ra"
     :mnemonic: "jmp"
+    :op: 0x13
+    :args:
+      - :type: register
+        :name: "target address"
+
+  - :name: "Branch if =="
+    :desc: "Branch if equal to address in Ra"
+    :mnemonic: "breq"
     :op: 0x14
     :args:
       - :type: register
         :name: "target address"
 
-  - :name: "Jump immediate"
-    :desc: "Jump to immediate address"
-    :mnemonic: "jmpi"
-    :op: 0x15
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch if =="
-    :desc: "Branch if equal to address in register"
-    :mnemonic: "breq"
-    :op: 0x16
-    :args:
-      - :type: register
-        :name: "target address"
-
   - :name: "Branch if !="
-    :desc: "Branch if not equal to address in register"
+    :desc: "Branch if not equal to address in Ra"
     :mnemonic: "brne"
-    :op: 0x17
+    :op: 0x15
     :args:
       - :type: register
         :name: "target address"
 
   - :name: "Branch if >"
-    :desc: "Branch if greater than to address in register"
+    :desc: "Branch if greater than to address in Ra"
     :mnemonic: "brgt"
-    :op: 0x18
+    :op: 0x16
     :args:
       - :type: register
         :name: "target address"
 
   - :name: "Branch if >="
-    :desc: "Branch if greater than or equal to address in register"
+    :desc: "Branch if greater than or equal to address in Ra"
     :mnemonic: "brge"
-    :op: 0x19
+    :op: 0x17
     :args:
       - :type: register
         :name: "target address"
 
   - :name: "Branch if <"
-    :desc: "Branch if less than to address in register"
+    :desc: "Branch if less than to address in Ra"
     :mnemonic: "brlt"
-    :op: 0x1a
+    :op: 0x18
     :args:
       - :type: register
         :name: "target address"
 
   - :name: "Branch if <="
-    :desc: "Branch if less than or equal to address in register"
+    :desc: "Branch if less than or equal to address in Ra"
     :mnemonic: "brle"
-    :op: 0x1b
+    :op: 0x19
     :args:
       - :type: register
-        :name: "target address"
-
-  - :name: "Branch immediate if =="
-    :desc: "Branch if equal to immediate"
-    :mnemonic: "breqi"
-    :op: 0x1c
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch immediate if !="
-    :desc: "Branch if not equal to immediate"
-    :mnemonic: "brnei"
-    :op: 0x1d
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch immediate if >"
-    :desc: "Branch if greater than to immediate"
-    :mnemonic: "brgti"
-    :op: 0x1e
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch immediate if >="
-    :desc: "Branch if greater than or equal to immediate"
-    :mnemonic: "brgei"
-    :op: 0x1f
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch immediate if <"
-    :desc: "Branch if less than to immediate"
-    :mnemonic: "brlti"
-    :op: 0x20
-    :args:
-      - :type: immediate
-        :name: "target address"
-
-  - :name: "Branch immediate if <="
-    :desc: "Branch if less than or equal to immediate"
-    :mnemonic: "brlei"
-    :op: 0x21
-    :args:
-      - :type: immediate
         :name: "target address"
 
   - :name: "Call"
-    :desc: "Push PC onto stack, and jump to address in register"
+    :desc: "Push IP onto stack, and jump to address in Ra"
     :mnemonic: "call"
-    :op: 0x22
+    :op: 0x1A
     :args:
       - :type: register
-        :name: "target address"
-
-  - :name: "Call immediate"
-    :desc: "Push PC onto stack, and jump to immediate address"
-    :mnemonic: "calli"
-    :op: 0x23
-    :args:
-      - :type: immediate
         :name: "target address"
 
   - :name: "Return"
-    :desc: "Alias for pop pc"
+    :desc: "Alias for pop IP"
     :mnemonic: "ret"
-    :op: 0x24)
-
-    # Port operations
-  - :name: "Out"
-    :desc: "Write register to port"
-    :mnemonic: "out"
-    :op: 0x25
-    :args:
-      - :type: port
-        :name: "destination"
-
-      - :type: register
-        :name: "source"
-
-  - :name: "Out immediate"
-    :desc: "Write immediate to port"
-    :mnemonic: "outi"
-    :op: 0x26
-    :args:
-      - :type: port
-        :name: "destination"
-
-      - :type: immediate
-        :name: "immediate"
-
-  - :name: "Out RAM"
-    :desc: "Write RAM entry to port"
-    :mnemonic: "outm"
-    :op: 0x27
-    :args:
-      - :type: port
-        :name: "destination"
-
-      - :type: address
-        :name: "RAM address"
-
-  - :name: "In"
-    :desc: "Read port value into register"
-    :mnemonic: "in"
-    :op: 0x28
-    :args:
-      - :type: register
-        :name: "destination"
-
-      - :type: port
-        :name: "source"
-
-  - :name: "In RAM"
-    :desc: "Read port value into RAM"
-    :mnemonic: "inm"
-    :op: 0x29
-    :args:
-      - :type: address
-        :name: "RAM destination"
-
-      - :type: port
-        :name: "source"
+    :op: 0x1B
