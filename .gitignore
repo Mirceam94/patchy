@@ -1,4 +1,3 @@
-*.s
 *.bin
 Gemfile.lock
 .DS_Store
