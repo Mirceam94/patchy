@@ -100,7 +100,7 @@ module Patchy
             dest: dest,
             src: src,
             immediate: immediate
-            )
+          )
 
           puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
           puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('h*')[0]}" if @debug
@@ -169,8 +169,7 @@ module Patchy
         raise "Can't have negative addresses: #{address}"
       end
 
-      # We force the highest page to make sure we don't over-run memory
-      if not @cpu.ram.bounds_check(0xff, address)
+      if not @cpu.ram.bounds_check(address)
         raise "Out-of-bounds address: #{address}"
       end
     end
@@ -186,6 +185,7 @@ module Patchy
       immediate
     end
 
+    # OUTDATED, no longer accurate
     def process_arg_port(arg)
       port = read_number(arg)
 

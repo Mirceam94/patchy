@@ -1,14 +1,13 @@
 require "lib/cpu/instructions/instruction"
 require "lib/cpu/instructions/instruction_set"
-require "lib/cpu/instructions/instruction_cache"
-require "lib/cpu/decoder"
 require "lib/cpu/register"
-require "lib/cpu/ram"
+require "lib/cpu/rxm16"
+require "lib/cpu/rxm32"
 
 module Patchy
   class CPU
 
-    attr_reader :registers, :ram, :stack_page
+    attr_reader :registers, :ram
     attr_accessor :needs_halt
 
     # TODO: Move the clock out of the CPU, since we use it in the instruction
@@ -24,13 +23,12 @@ module Patchy
       @halt = false
       @needs_halt = false
       @cycles = 0
-      @stack_page = 0xff
 
       puts "- Initializing CPU" if @debug
 
       initialize_registers
-      initialize_memory
-      initialize_modules
+      initialize_ram
+      initialize_rom
     end
 
     def initialize_registers
@@ -90,24 +88,25 @@ module Patchy
       @registers[:sp].address = 0xF
     end
 
-    def initialize_memory
-      @ram = Patchy::RAM.new
-      puts "  Patchy RAM initialized [#{Patchy::RAM.size} bytes]" if @debug
+    def initialize_ram
+      @ram = Patchy::RXM16.new(0x10000)
+      puts "  Patchy RAM initialized [#{@ram.size * 2} bytes]" if @debug
     end
 
-    def initialize_modules
-      @instruction_cache = Patchy::InstructionCache.new self
-      @decoder = Patchy::Decoder.new self
+    def initialize_rom
+      @rom = Patchy::RXM32.new(0x10000)
+      puts "  Patchy ROM initialized [#{@rom.size * 4} bytes]" if @debug
     end
 
     def load_instructions(instructions, offset=0)
-      address = 0
-
-      instructions.each do |i|
-        @ram.write_raw address + offset, (i.opcode << 8) | ((i.dest << 4) | i.src)
-        address += 1
-        @ram.write_raw address + offset, i.immediate
-        address += 1
+      instructions.each_with_index do |i, address|
+        @rom.write(
+          address + offset,
+          (i.immediate << 16) |
+          (i.src << 12) |
+          (i.dest << 8) |
+          i.opcode
+        )
       end
     end
 
@@ -123,14 +122,7 @@ module Patchy
         @@frequencyHz.times do |i|
           cycle_start = Time.now
 
-          # Clock instruction cache
-          @instruction_cache.cycle
-
-          # Only perform a CPU op every 8th clock cycle; this gives the
-          # instruction cache time to fill and keep up with us
-          if i % 8 == 0 and i != 0
-            cycle_execute
-          end
+          cycle_execute
 
           # Halt check in here as well
           break if @halt
@@ -154,33 +146,54 @@ module Patchy
 
     # The heart of the beast
     def cycle_execute
-
-      ##
-      ## I'm too lazy to actually make this super-scalar now, so for the time
-      ## being we'll just go with a single execution pathway (and in-place!)
-      ##
-
-      # Grab instruction
-      instructionRaw = @instruction_cache.instructionA
-      immediateRaw = @instruction_cache.immediateA
+      ip = @registers[:ip]
+      instructionRaw = @rom.read(ip.bdata.snapshot * 1)
 
       # Read it properly! :D
       instruction = Patchy::CPU::Instruction.new(
-        opcode: instructionRaw >> 8,
-        dest: (instructionRaw >> 4) & 0b000000001111,
-        src:  instructionRaw & 0b0000000000001111,
-        immediate: immediateRaw
+        opcode: instructionRaw & 0xFF,
+        dest: (instructionRaw >> 8) & 0xF,
+        src:  (instructionRaw >> 12) & 0xF,
+        immediate: instructionRaw >> 16
       )
 
-      # Pass instruction into decoder
-      # TODO: Implement pipeline
-      @decoder.decode instruction
+      case instruction.opcode
+      when 0x00 then exec_op_noop(instruction)
+      when 0x01 then exec_op_mv(instruction)
+      when 0x02 then exec_op_ldi(instruction)
+      when 0x03 then exec_op_ldm(instruction)
+      when 0x04 then exec_op_lpx(instruction)
+      when 0x05 then exec_op_spx(instruction)
+      when 0x06 then exec_op_out(instruction)
+      when 0x07 then exec_op_in(instruction)
+      when 0x08 then exec_op_str(instruction)
+      when 0x09 then exec_op_push(instruction)
+      when 0x0A then exec_op_pop(instruction)
+      when 0x0B then exec_op_add(instruction)
+      when 0x0C then exec_op_sub(instruction)
+      when 0x0D then exec_op_cmp(instruction)
+      when 0x0E then exec_op_and(instruction)
+      when 0x0F then exec_op_or(instruction)
+      when 0x10 then exec_op_xor(instruction)
+      when 0x11 then exec_op_shl(instruction)
+      when 0x12 then exec_op_shr(instruction)
+      when 0x13 then exec_op_jmp(instruction)
+      when 0x14 then exec_op_breq(instruction)
+      when 0x15 then exec_op_brne(instruction)
+      when 0x16 then exec_op_brgt(instruction)
+      when 0x17 then exec_op_brge(instruction)
+      when 0x18 then exec_op_brlt(instruction)
+      when 0x19 then exec_op_brle(instruction)
+      when 0x1A then exec_op_call(instruction)
+      when 0x1B then exec_op_ret(instruction)
+      when 0xFF then exec_op_hlt(instruction)
+      end
 
       # Increase cycles now, so our halt message shows the true count if neeed
       inc_cycles
 
       halt if @needs_halt
-      inc_pc if !@halt
+      inc_ip if !@halt
     end
 
     def get_reg_by_address(address)
@@ -217,9 +230,10 @@ module Patchy
       bit = nil
 
       case flag
-      when :lt then bit = 1
-      when :gt then bit = 2
-      when :eq then bit = 3
+      when :lt then bit = 0
+      when :gt then bit = 1
+      when :eq then bit = 2
+      when :hlt then bit = 3
       else
         raise "Unknown flag: #{flag}"
       end
@@ -231,12 +245,11 @@ module Patchy
       end
     end
 
-    # NOTE: This advances the PC by two, since instructions are two words!
-    def inc_pc
-      @registers[:pc].bdata += 2
+    def inc_ip
+      @registers[:ip].bdata += 1
     end
 
-    def reg_pc
+    def reg_ip
       @registers[:pc].bdata
     end
 
@@ -256,7 +269,7 @@ module Patchy
       @registers[:dp].bdata
     end
 
-    # TODO: Provide boundes-checking when setting registers
+    # TODO: Provide bounds-checking when setting registers
     def reg_dp=(val)
       @registers[:dp] = val
     end
@@ -270,10 +283,162 @@ module Patchy
       dump << "  Registers\n"
 
       @registers.each do |name, val|
-        dump << "    #{name}: 0x#{val.bdata.to_binary_s.unpack('H*')[0]}\n"
+        b = val.bdata
+        dump << "    #{name}: 0x#{b.to_binary_s.unpack('H*')[0]}"
+
+        if name == :flgs then
+          dump << " LT" if (b & 0b1) > 0
+          dump << " GT" if (b & 0b10) > 0
+          dump << " EQ" if (b & 0b100) > 0
+          dump << " HLT" if (b & 0b1000) > 0
+          dump << "\n"
+        else
+          dump << "\n"
+        end
       end
 
       dump << "\n  Ran #{@cycles} cycles"
     end
+
+    ###
+    # Instruction implementation follows
+    ###
+    def exec_op_noop(instruction)
+    end
+
+    def exec_op_mv(instruction)
+      set_reg_by_address(
+        get_reg_by_address(instruction.src),
+        instruction.dest
+      )
+    end
+
+    def exec_op_ldi(instruction)
+      set_reg_by_address(instruction.immediate, instruction.dest)
+    end
+
+    def exec_op_ldm(instruction)
+      ram_value = @ram.read(reg_dp, instruction.immediate)
+      set_reg_by_address(ram_value, instruction.dest)
+    end
+
+    def exec_op_lpx(instruction)
+    end
+
+    def exec_op_spx(instruction)
+    end
+
+    def exec_op_out(instruction)
+    end
+
+    def exec_op_in(instruction)
+    end
+
+    def exec_op_str(instruction)
+      @ram.write(reg_dp, get_reg_by_address(instruction.src))
+    end
+
+    def exec_op_push(instruction)
+      dec_sp
+      @ram.write(reg_sp, get_reg_by_address(instruction.src))
+    end
+
+    def exec_op_pop(instruction)
+      set_reg_by_address(@ram.read(reg_sp), instruction.dest)
+      inc_sp
+    end
+
+    def exec_op_add(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(src + dest, instruction.dest)
+    end
+
+    def exec_op_sub(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest - src, instruction.dest)
+    end
+
+    def exec_op_cmp(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      lt = src < dest
+      gt = src > dest
+      eq = src == dest
+
+      set_flag(:lt, lt)
+      set_flag(:gt, gt)
+      set_flag(:eq, eq)
+    end
+
+    def exec_op_and(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest & src, instruction.dest)
+    end
+
+    def exec_op_or(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest | src, instruction.dest)
+    end
+
+    def exec_op_xor(instruction)
+      src = get_reg_by_address(instruction.src)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest ^ src, instruction.dest)
+    end
+
+    def exec_op_shl(instruction)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest << 1, instruction.dest)
+    end
+
+    def exec_op_shr(instruction)
+      dest = get_reg_by_address(instruction.dest)
+
+      set_reg_by_address(dest >> 1, instruction.dest)
+    end
+
+    def exec_op_jmp(instruction)
+    end
+
+    def exec_op_breq(instruction)
+    end
+
+    def exec_op_brne(instruction)
+    end
+
+    def exec_op_brgt(instruction)
+    end
+
+    def exec_op_brge(instruction)
+    end
+
+    def exec_op_brlt(instruction)
+    end
+
+    def exec_op_brle(instruction)
+    end
+
+    def exec_op_call(instruction)
+    end
+
+    def exec_op_ret(instruction)
+    end
+
+    def exec_op_hlt(instruction)
+      set_flag(:hlt, true)
+      @needs_halt = true
+    end
+
   end
 end

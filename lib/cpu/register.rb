@@ -23,9 +23,5 @@ module Patchy
       bit16 :bdata, initial_value: 0
     end
 
-    class Register32 < Register
-      bit32 :bdata, initial_value: 0
-    end
-
   end
 end
