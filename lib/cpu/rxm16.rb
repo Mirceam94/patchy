@@ -6,17 +6,27 @@ module Patchy
 
     attr_reader :size
 
+    # Only bytes are unsigned, stored as AB (MSB LSB)
     def initialize(size)
-      @raw = NArray.sint(size)
+      @raw_a = NArray.byte(size)
+      @raw_b = NArray.byte(size)
+
       @size = size
     end
 
     def read(address)
-      @raw[address]
+      a = @raw_a[address]
+      b = @raw_b[address]
+
+      (a << 8) | b
     end
 
     def write(address, data)
-      @raw[address] = data
+      a = (data >> 8) & 0xFF
+      b = data & 0xFF
+
+      @raw_a[address] = a
+      @raw_b[address] = b
     end
 
     def bounds_check(address)

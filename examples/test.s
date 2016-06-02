@@ -1,7 +1,11 @@
 # Run and inspect the core dump
-ldi a, 0xDEAD
-ldi b, 0xBEEF
-ldi c, 0xDEAD
-ldi d, 0xBEEF
+ldi dp, 0x10
+
+ldi a, 2
+ldi b, 2
+add a, b
+str a
+add a, b
+ldm c
 
 hlt

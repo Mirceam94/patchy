@@ -12,6 +12,7 @@ module Patchy
       @raw_b = NArray.byte(size)
       @raw_c = NArray.byte(size)
       @raw_d = NArray.byte(size)
+
       @size = size
     end
 

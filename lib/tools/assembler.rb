@@ -62,16 +62,18 @@ module Patchy
           dest = 0x0
           immediate = 0x0
 
+          args_s = line.sub(i[:mnemonic], "").strip
+          args = args_s.split(",").map { |a| a.strip }
+
           # Because instructions can take up to two arguments, and the
           # first is always a destination while the second is always
           # a source, we can find them manually.
           if i[:args]
-            if i[:args][0]
+            if i[:args][0] and args[0]
               type = i[:args][0][:type]
               name = i[:args][0][:name]
 
-              arg_raw = read_src_arg(line)
-              arg = process_arg(arg_raw, type, name)
+              arg = process_arg(args[0], type, name)
 
               if type == "register"
                 dest = arg
@@ -80,12 +82,11 @@ module Patchy
               end
             end
 
-            if i[:args][1]
+            if i[:args][1] and args[1]
               type = i[:args][1][:type]
               name = i[:args][1][:name]
 
-              arg_raw = read_dest_arg(line)
-              arg = process_arg(arg_raw, type, name)
+              arg = process_arg(args[1], type, name)
 
               if type == "register"
                 src = arg

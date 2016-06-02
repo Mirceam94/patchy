@@ -250,11 +250,11 @@ module Patchy
     end
 
     def reg_ip
-      @registers[:pc].bdata
+      @registers[:pc].bdata * 1
     end
 
     def reg_sp
-      @registers[:sp].bdata
+      @registers[:sp].bdata * 1
     end
 
     def inc_sp
@@ -266,7 +266,7 @@ module Patchy
     end
 
     def reg_dp
-      @registers[:dp].bdata
+      @registers[:dp].bdata * 1
     end
 
     # TODO: Provide bounds-checking when setting registers
@@ -318,7 +318,7 @@ module Patchy
     end
 
     def exec_op_ldm(instruction)
-      ram_value = @ram.read(reg_dp, instruction.immediate)
+      ram_value = @ram.read(reg_dp)
       set_reg_by_address(ram_value, instruction.dest)
     end
 
