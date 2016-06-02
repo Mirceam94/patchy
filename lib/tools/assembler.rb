@@ -56,7 +56,7 @@ module Patchy
 
     def parse_line(line)
       Patchy::CPU.instructions.each do |i|
-        if /\s*#{i[:mnemonic]}\s*/ =~ line
+        if /\b#{i[:mnemonic]}\b/ =~ line
 
           src = 0x0
           dest = 0x0
