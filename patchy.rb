@@ -73,6 +73,9 @@ cpu_thread = Thread.new do
   patchy.load_instructions(rom_bin)
   patchy.run
 
+  puts "Press enter to exit"
+  gets.chomp!
+
   # Execution done, kill the renderer
   # TODO: Add option to keep it open for viewing results
   renderer_messenger.close if renderer_messenger

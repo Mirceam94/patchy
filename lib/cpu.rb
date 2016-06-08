@@ -331,6 +331,14 @@ module Patchy
     end
 
     def exec_op_spx(instruction)
+      col = get_reg_by_address(instruction.src)
+      address = get_reg_by_address(0x6) # 0x6 = PX
+
+      # Derive xy coords from the VRAM address
+      y = address / 16
+      x = address % 16
+
+      @renderer_messenger.set_px(x, y, col)
     end
 
     def exec_op_out(instruction)

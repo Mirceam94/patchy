@@ -8,4 +8,8 @@ str a
 add a, b
 ldm c
 
+ldi px, 100
+ldi e, 0b001
+spx e
+
 hlt

@@ -7,5 +7,14 @@ module Patchy
       })
     end
 
+    def set_px(x, y, col)
+      push({
+        :cmd => :spx,
+        :x => x,
+        :y => y,
+        :col => col
+      })
+    end
+
   end
 end
