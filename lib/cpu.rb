@@ -23,6 +23,7 @@ module Patchy
       @halt = false
       @needs_halt = false
       @cycles = 0
+      @renderer = nil
 
       puts "- Initializing CPU" if @debug
 
@@ -243,6 +244,10 @@ module Patchy
       else
         @registers[:flgs].bdata &= ~(1 << bit)
       end
+    end
+
+    def set_renderer_messenger(renderer_messenger)
+      @renderer_messenger = renderer_messenger
     end
 
     def inc_ip
