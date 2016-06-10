@@ -60,7 +60,7 @@ else
   end
 end
 
-return if !rom_bin
+exit 0 if !rom_bin
 
 # List the program after assembling/before running if requested
 if opts.showprog
