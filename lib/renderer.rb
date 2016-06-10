@@ -33,12 +33,12 @@ module Patchy
     # @param [Number] col 0bRGB
     ###
     def set_px(x, y, col)
-      @matrix_state[y][x] = col
+      @matrix_state[x][y] = col
     end
 
     def draw
-      @matrix_state.each_with_index do |row, y|
-        row.each_with_index do |val, x|
+      @matrix_state.each_with_index do |col, x|
+        col.each_with_index do |val, y|
           r = (val & 0b100) > 0 ? 255 : 0
           g = (val & 0b010) > 0 ? 255 : 0
           b = (val & 0b001) > 0 ? 255 : 0

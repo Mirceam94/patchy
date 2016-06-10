@@ -52,8 +52,8 @@ This readme will be updated as the architecture is fleshed out.
 * 16 bit immediate
 
 The above allows for Patchy to have up to 256 instructions, and access up to 16
-registers. Currently there are less than 32 instructions, but this leaves plenty
-of room for expansion. For the time being there are no immediate/RAM specialised
+registers. Currently there are 33 instructions, but this leaves plenty of room
+for expansion. For the time being there are no immediate/RAM specialised
 instructions beyond Register<->RAM/I interaction, but in the future there is
 plenty of room left over for things like ADDI, INM, STRI, etc.
 
@@ -70,20 +70,25 @@ plenty of room left over for things like ADDI, INM, STRI, etc.
 * 0x09 push Rs      Push Rs register value onto stack, decrement SP
 * 0x0A pop Rd       Pop top stack value into Rd, increment SP
 * 0x0B add Rd, Rs   Rd = Rd + Rs
-* 0x0C sub Rd, Rs   Rd = Rd - Rs
-* 0x0D cmp Ra, Rb   Compare Ra and Rb, updates FLGS register
-* 0x0E and Rd, Rs   Rd = Rd & Rs
-* 0x0F or Rd, Rs    Rd = Rd | Rs
-* 0x10 xor Rd, Rs   Rd = Rd ^ Rs
-* 0x11 shl Rd       Shifts Rd left in place
-* 0x12 shr Rd       Shifts Rd right in place
-* 0x13 jmp Ra       Jumps to address in Ra
-* 0x14 breq Ra      Branch if == to address in Ra
-* 0x15 brne Ra      Branch if != to address in Ra
-* 0x16 brgt Ra      Branch if >  to address in Ra
-* 0x17 brge Ra      Branch if >= to address in Ra
-* 0x18 brlt Ra      Branch if <  to address in Ra
-* 0x19 brle Ra      Branch if <= to address in Ra
-* 0x1A call Ra      Push IP onto stack, and jump to address in Ra
-* 0x1B ret          Alias for pop IP
+* 0x0C addi Rd, I   Rd = Rd + I
+* 0x0D sub Rd, Rs   Rd = Rd - Rs
+* 0x0E subi Rd, I   Rd = Rd - I
+* 0x0F cmp Ra, Rb   Compare Ra and Rb, updates FLGS register
+* 0x10 and Rd, Rs   Rd = Rd & Rs
+* 0x11 or Rd, Rs    Rd = Rd | Rs
+* 0x12 xor Rd, Rs   Rd = Rd ^ Rs
+* 0x13 shl Rd       Shifts Rd left in place
+* 0x14 shr Rd       Shifts Rd right in place
+* 0x15 jmp Ra       Jumps to address in Ra
+* 0x16 je Ra        Jump if == to address in Ra
+* 0x17 jne Ra       Jump if != to address in Ra
+* 0x18 jg Ra        Jump if >  to address in Ra
+* 0x19 jge Ra       Jump if >= to address in Ra
+* 0x1A jl Ra        Jump if <  to address in Ra
+* 0x1B jle Ra       Jump if <= to address in Ra
+* 0x1C jz Ra        Jump if 0 to address in Ra
+* 0x1D jnz Ra       Jump if !0 to the address in Ra
+* 0x1E call Ra      Push IP onto stack, and jump to address in Ra
+* 0x1F calli I      Push IP onto stack, and jump to immediate address
+* 0x20 ret          Alias for pop IP
 * 0xFF hlt          Halt

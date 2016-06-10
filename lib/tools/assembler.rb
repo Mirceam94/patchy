@@ -11,16 +11,21 @@ module Patchy
       @cpu = Patchy::CPU.new debug
     end
 
-    def assemble(source)
-      program_instructions = process_source(source)
-      display_summary(program_instructions)
-      program_instructions
-    end
-
+    ###
+    # Renders a summary of the work done for the provided instructions,
+    # including information on program size.
+    #
+    # @param {Array<Instruction>} instructions
+    ###
     def display_summary(instructions)
       puts generate_summary(instructions)
     end
 
+    ###
+    # Generates a string summary of the provided program
+    #
+    # @param {Array<Instruction>} instructions
+    ###
     def generate_summary(instructions)
       "\n" <<
       "  Read #{instructions.length} instructions\n" <<
@@ -28,42 +33,140 @@ module Patchy
       "\n"
     end
 
-    def process_source(source)
-      instructions = []
+    ###
+    # Assembles a multi-line string source file and returns an array of the
+    # final instructions
+    #
+    # @param {String} source
+    # @return {Array<Instruction>} instructions
+    ###
+    def assemble(source)
+
+      # Strip comments and clean up lines, generate an array of code
+      lines = []
 
       while(rawLine = source.gets)
-
-        rawLine.delete! "\n"      # String newlines
-        rawLine.sub! /\s*#.*/, "" # Strip comments
+        rawLine = rawLine[0...rawLine.index("#")] if rawLine.include?("#")
+        rawLine.strip!
 
         # Split line on semicolon to allow support for multiple instructions
         # per line
-        rawLine.split(";").each do |line|
+        if !rawLine.empty?
+          rawLine.split(";").each { |line| lines.push(line) }
+        end
+      end
 
-          line.strip! # Remove excess whitespace
+      # Initially assemble with placeholder addresses, and keep track of them
+      pending_adr_changes = []
+      instructions = []
+      call_table = {}
 
-          if not line.empty?
+      lines.each_with_index do |line, i|
+        puts "Parsing line [#{line}]..." if @debug
 
-            puts "Parsing line [#{line}]..." if @debug
+        # Handle labels
+        if line[-1] == ":"
+          label = line[0...-1].to_sym
 
-            instructions.push parse_line line
+          if call_table.has_key?(label)
+            raise "Error, duplicate label found in source: #{label}"
+          end
+
+          call_table[label] = instructions.length
+        else
+          needs_address_change = false
+          label = nil
+
+          # Deref address if possible
+          if line.include?("[") and line.include?("]")
+            derefed, label, success = convert_address(line, call_table)
+
+            # May be nil if we don't know the address yet
+            if !success
+              needs_address_change = true
+            else
+              line = derefed
+            end
+          end
+
+          # Assemble and properly handle complex instructions
+          assembled = assemble_instruction_str(line)
+          assembled.each { |instr| instructions.push(instr) }
+
+          # For the time being, only instructions at the end of a compiled line
+          # sub-prog need address changes (see CALL assembly)
+          if needs_address_change and !label.nil?
+            pending_adr_changes.push({
+              :i => instructions.length - 1,
+              :label => label
+            })
           end
         end
+      end
+
+      # Go back and fill in addresses
+      pending_adr_changes.each do |data|
+        instructions[data[:i]].immediate = call_table[data[:label]]
       end
 
       instructions
     end
 
-    def parse_line(line)
+    ###
+    # Parses [LABEL] references to the exact address, as provided by a call
+    # table
+    #
+    # @param {String} line
+    # @param {Map} call_table
+    # @return {String, Symbol, Bool} converted, label, success
+    ###
+    def convert_address(line, call_table)
+      left = line.index("[")
+      right = line.index("]")
+      label = line[left + 1...right].to_sym
+
+      # If we don't have an entry for the provided label, return it as-is to
+      # be filled in later
+      if !call_table.has_key?(label)
+        return line.sub("[#{label.to_s}]", "").insert(left, "0"), label, false
+      else
+        adr = call_table[label]
+
+        return line.sub("[#{label.to_s}]", "").insert(left, adr.to_s), label, true
+      end
+    end
+
+    ###
+    # Parses the provided string instruction and returns its assembled binary
+    #
+    # @param {String} line
+    # @return {Instruction} instruction
+    ###
+    def assemble_instruction_str(line)
       Patchy::CPU.instructions.each do |i|
         if /\b#{i[:mnemonic]}\b/ =~ line
-
           src = 0x0
           dest = 0x0
           immediate = 0x0
 
           args_s = line.sub(i[:mnemonic], "").strip
           args = args_s.split(",").map { |a| a.strip }
+
+          # CALL assembles to 4 instructions:
+          # MOV RET, IP
+          # ADDI RET, 4
+          # PUSH RET
+          # CALLI [LABEL]
+          if i[:mnemonic] == "call"
+            call_prog = [
+              assemble_instruction_str("mov RET, IP")[0],
+              assemble_instruction_str("addi RET, 4")[0],
+              assemble_instruction_str("push RET")[0],
+              assemble_instruction_str(line.sub("call", "calli"))[0]
+            ]
+
+            return call_prog
+          end
 
           # Because instructions can take up to two arguments, and the
           # first is always a destination while the second is always
@@ -76,7 +179,11 @@ module Patchy
               arg = process_arg(args[0], type, name)
 
               if type == "register"
-                dest = arg
+                if name == "source"
+                  src = arg
+                else
+                  dest = arg
+                end
               elsif ["address", "port", "immediate"].include? type
                 immediate = arg
               end
@@ -89,7 +196,11 @@ module Patchy
               arg = process_arg(args[1], type, name)
 
               if type == "register"
-                src = arg
+                if name == "source"
+                  src = arg
+                else
+                  dest = arg
+                end
               elsif ["address", "port", "immediate"].include? type
                 immediate = arg
               end
@@ -103,12 +214,14 @@ module Patchy
             immediate: immediate
           )
 
-          puts "  - Found #{i[:mnemonic]} in line #{line}" if @debug
-          puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('h*')[0]}" if @debug
-          puts "    - #{bin_ins}" if @debug
+          if @debug
+            puts "  - Found #{i[:mnemonic]} in line #{line}"
+            puts "  - Parsed to 0x#{bin_ins.to_binary_s.unpack('h*')[0]}"
+            puts "    - #{bin_ins}"
+          end
 
           # Return the first instruction matched
-          return bin_ins
+          return [bin_ins]
         end
       end
     end
@@ -136,6 +249,22 @@ module Patchy
       dest
     end
 
+    ###
+    # Returns the CPU address of the provided register
+    #
+    # @param {Symbol} reg register name, lowercase
+    # @return {Number} address
+    ###
+    def get_reg_address(name)
+      reg = @cpu.registers[name]
+
+      if not reg
+        raise "Invalid register provided: #{name}"
+      end
+
+      reg.address
+    end
+
     def process_arg(arg, type, name)
       if not arg
         raise "Required argument missing!\n[#{type} - #{name}]"
@@ -153,13 +282,8 @@ module Patchy
 
     def process_arg_register(arg)
       arg.downcase!
-      reg = @cpu.registers[arg.to_sym]
 
-      if not reg
-        raise "Invalid register provided: #{arg}"
-      end
-
-      reg.address
+      get_reg_address(arg.to_sym)
     end
 
     # Addresses are always into RAM

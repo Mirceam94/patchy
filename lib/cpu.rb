@@ -30,6 +30,8 @@ module Patchy
       initialize_registers
       initialize_ram
       initialize_rom
+      initialize_instruction_debug_table
+      initialize_register_debug_table
     end
 
     def initialize_registers
@@ -70,23 +72,33 @@ module Patchy
         :sp => Patchy::CPU::Register16.new
       }
 
-      # Used to address registers in instructions
-      @registers[:a].address = 0x0
-      @registers[:b].address = 0x1
-      @registers[:c].address = 0x2
-      @registers[:d].address = 0x3
-      @registers[:e].address = 0x4
-      @registers[:f].address = 0x5
-      @registers[:px].address = 0x6
-      @registers[:flgs].address = 0x7
-      @registers[:in1].address = 0x8
-      @registers[:in2].address = 0x9
-      @registers[:out1].address = 0xA
-      @registers[:out2].address = 0xB
-      @registers[:dp].address = 0xC
-      @registers[:ip].address = 0xD
-      @registers[:ret].address = 0xE
-      @registers[:sp].address = 0xF
+      @register_name_hash = get_register_name_hash
+
+      # Set up register addresses
+      @register_name_hash.each do |key, val|
+        @registers[key].address = val
+      end
+    end
+
+    def get_register_name_hash
+      {
+        :a => 0x0,
+        :b => 0x1,
+        :c => 0x2,
+        :d => 0x3,
+        :e => 0x4,
+        :f => 0x5,
+        :px => 0x6,
+        :flgs => 0x7,
+        :in1 => 0x8,
+        :in2 => 0x9,
+        :out1 => 0xA,
+        :out2 => 0xB,
+        :dp => 0xC,
+        :ip => 0xD,
+        :ret => 0xE,
+        :sp => 0xF
+      }
     end
 
     def initialize_ram
@@ -97,6 +109,62 @@ module Patchy
     def initialize_rom
       @rom = Patchy::RXM32.new(0x10000)
       puts "  Patchy ROM initialized [#{@rom.size * 4} bytes]" if @debug
+    end
+
+    ###
+    # Sets up a table for easy opcode -> mnemonic + args str conversion
+    ###
+    def initialize_instruction_debug_table
+      @instruction_debug_table = {}
+
+      @@instructions.each do |i|
+        @instruction_debug_table[i[:op]] = {
+          :mnemonic => i[:mnemonic],
+          :args => i[:args]
+        }
+      end
+    end
+
+    ###
+    # Sets up a table for easy register address -> name conversion
+    ###
+    def initialize_register_debug_table
+      @register_debug_table = get_register_name_hash.invert
+    end
+
+    ###
+    # Generates a string representation of the provided instruction object
+    #
+    # @param {Instruction} instruction
+    # @return {String} str
+    ###
+    def gen_debug_instruction_string(instruction)
+      instr_def = @instruction_debug_table[instruction.opcode]
+      instruction_s = instr_def[:mnemonic]
+
+      if instr_def[:args]
+        instr_def[:args].each_with_index do |arg, i|
+          if i > 0
+            instruction_s += ","
+          end
+
+          if arg[:type] == "register"
+            if arg[:name].include?("address")
+              instruction_s += " #{@register_debug_table[instruction.dest]}"
+            elsif arg[:name] == "source"
+              instruction_s += " #{@register_debug_table[instruction.src]}"
+            elsif arg[:name] == "destination"
+              instruction_s += " #{@register_debug_table[instruction.dest]}"
+            end
+          elsif arg[:type] == "immediate"
+            instruction_s += " 0x#{(instruction.immediate + 0).to_s(16)}"
+          else
+            instruction_s += " {UNKNOWN ARG TYPE}"
+          end
+        end
+      end
+
+      instruction_s
     end
 
     def load_instructions(instructions, offset=0)
@@ -141,7 +209,7 @@ module Patchy
         puts "#{elapsed - 1000000}us overrun!" if elapsed > 1000000
       end
 
-    rescue SystemExit, Interrupt
+    rescue Exception
       dump_core
     end
 
@@ -158,6 +226,10 @@ module Patchy
         immediate: instructionRaw >> 16
       )
 
+      if @debug
+        puts "Exec [#{@cycles}] #{gen_debug_instruction_string(instruction)}"
+      end
+
       case instruction.opcode
       when 0x00 then exec_op_noop(instruction)
       when 0x01 then exec_op_mv(instruction)
@@ -171,22 +243,27 @@ module Patchy
       when 0x09 then exec_op_push(instruction)
       when 0x0A then exec_op_pop(instruction)
       when 0x0B then exec_op_add(instruction)
-      when 0x0C then exec_op_sub(instruction)
-      when 0x0D then exec_op_cmp(instruction)
-      when 0x0E then exec_op_and(instruction)
-      when 0x0F then exec_op_or(instruction)
-      when 0x10 then exec_op_xor(instruction)
-      when 0x11 then exec_op_shl(instruction)
-      when 0x12 then exec_op_shr(instruction)
-      when 0x13 then exec_op_jmp(instruction)
-      when 0x14 then exec_op_breq(instruction)
-      when 0x15 then exec_op_brne(instruction)
-      when 0x16 then exec_op_brgt(instruction)
-      when 0x17 then exec_op_brge(instruction)
-      when 0x18 then exec_op_brlt(instruction)
-      when 0x19 then exec_op_brle(instruction)
-      when 0x1A then exec_op_call(instruction)
-      when 0x1B then exec_op_ret(instruction)
+      when 0x0C then exec_op_addi(instruction)
+      when 0x0D then exec_op_sub(instruction)
+      when 0x0E then exec_op_subi(instruction)
+      when 0x0F then exec_op_cmp(instruction)
+      when 0x10 then exec_op_and(instruction)
+      when 0x11 then exec_op_or(instruction)
+      when 0x12 then exec_op_xor(instruction)
+      when 0x13 then exec_op_shl(instruction)
+      when 0x14 then exec_op_shr(instruction)
+      when 0x15 then exec_op_jmp(instruction)
+      when 0x16 then exec_op_je(instruction)
+      when 0x17 then exec_op_jne(instruction)
+      when 0x18 then exec_op_jg(instruction)
+      when 0x19 then exec_op_jge(instruction)
+      when 0x1A then exec_op_jl(instruction)
+      when 0x1B then exec_op_jle(instruction)
+      when 0x1C then exec_op_jz(instruction)
+      when 0x1D then exec_op_jnz(instruction)
+      when 0x1E then exec_op_call(instruction)
+      when 0x1F then exec_op_calli(instruction)
+      when 0x20 then exec_op_ret(instruction)
       when 0xFF then exec_op_hlt(instruction)
       end
 
@@ -199,13 +276,13 @@ module Patchy
 
     def get_reg_by_address(address)
       @registers.each do |name, reg|
-        return reg.bdata if reg.address == address
+        return reg.bdata + 0 if reg.address == address
       end
 
       raise "Unknown register address #{address}"
     end
 
-    def set_reg_by_address(value, address)
+    def set_reg_by_address(address, value)
       @registers.each do |name, reg|
         if reg.address == address
           return reg.bdata = value
@@ -235,6 +312,7 @@ module Patchy
       when :gt then bit = 1
       when :eq then bit = 2
       when :hlt then bit = 3
+      when :ze then bit = 4
       else
         raise "Unknown flag: #{flag}"
       end
@@ -244,6 +322,20 @@ module Patchy
       else
         @registers[:flgs].bdata &= ~(1 << bit)
       end
+    end
+
+    def get_flag(flag)
+      flgs = @registers[:flgs].bdata
+
+      case flag
+      when :lt then return (flgs & 0b1) > 0
+      when :gt then return (flgs & 0b10) > 0
+      when :eq then return (flgs & 0b100) > 0
+      when :hlt then return (flgs & 0b1000) > 0
+      when :ze then return (flgs & 0b10000) > 0
+      end
+
+      raise "Unknown flag: #{flag}"
     end
 
     def set_renderer_messenger(renderer_messenger)
@@ -277,6 +369,12 @@ module Patchy
     # TODO: Provide bounds-checking when setting registers
     def reg_dp=(val)
       @registers[:dp] = val
+    end
+
+    def jmp_to_reg_by_address(address)
+      dest = get_reg_by_address(address)
+
+      set_reg_by_address(@register_name_hash[:ip], dest - 1)
     end
 
     def dump_core
@@ -313,30 +411,32 @@ module Patchy
 
     def exec_op_mv(instruction)
       set_reg_by_address(
-        get_reg_by_address(instruction.src),
-        instruction.dest
+        instruction.dest,
+        get_reg_by_address(instruction.src)
       )
     end
 
     def exec_op_ldi(instruction)
-      set_reg_by_address(instruction.immediate, instruction.dest)
+      set_reg_by_address(instruction.dest, instruction.immediate)
     end
 
     def exec_op_ldm(instruction)
       ram_value = @ram.read(reg_dp)
-      set_reg_by_address(ram_value, instruction.dest)
+      set_reg_by_address(instruction.dest, ram_value)
     end
 
     def exec_op_lpx(instruction)
     end
 
     def exec_op_spx(instruction)
+      return if @renderer_messenger == nil
+
       col = get_reg_by_address(instruction.src)
       address = get_reg_by_address(0x6) # 0x6 = PX
 
       # Derive xy coords from the VRAM address
-      y = address / 16
-      x = address % 16
+      x = address / 16
+      y = address % 16
 
       @renderer_messenger.set_px(x, y, col)
     end
@@ -357,7 +457,7 @@ module Patchy
     end
 
     def exec_op_pop(instruction)
-      set_reg_by_address(@ram.read(reg_sp), instruction.dest)
+      set_reg_by_address(instruction.dest, @ram.read(reg_sp))
       inc_sp
     end
 
@@ -365,14 +465,56 @@ module Patchy
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(src + dest, instruction.dest)
+      res = dest + src
+
+      if res == 0
+        set_flag(:ze, true)
+      else
+        set_flag(:ze, false)
+      end
+
+      set_reg_by_address(instruction.dest, res)
+    end
+
+    def exec_op_addi(instruction)
+      dest = get_reg_by_address(instruction.dest)
+      res = dest + instruction.immediate
+
+      if res == 0
+        set_flag(:ze, true)
+      else
+        set_flag(:ze, false)
+      end
+
+      set_reg_by_address(instruction.dest, res)
     end
 
     def exec_op_sub(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest - src, instruction.dest)
+      res = dest - src
+
+      if res == 0
+        set_flag(:ze, true)
+      else
+        set_flag(:ze, false)
+      end
+
+      set_reg_by_address(instruction.dest, res)
+    end
+
+    def exec_op_subi(instruction)
+      dest = get_reg_by_address(instruction.dest)
+      res = dest - instruction.immediate
+
+      if res == 0
+        set_flag(:ze, true)
+      else
+        set_flag(:ze, false)
+      end
+
+      set_reg_by_address(instruction.dest, res)
     end
 
     def exec_op_cmp(instruction)
@@ -392,60 +534,111 @@ module Patchy
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest & src, instruction.dest)
+      set_reg_by_address(instruction.dest, dest & src)
     end
 
     def exec_op_or(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest | src, instruction.dest)
+      set_reg_by_address(instruction.dest, dest | src)
     end
 
     def exec_op_xor(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest ^ src, instruction.dest)
+      set_reg_by_address(instruction.dest, dest ^ src)
     end
 
     def exec_op_shl(instruction)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest << 1, instruction.dest)
+      set_reg_by_address(instruction.dest, dest << 1)
     end
 
     def exec_op_shr(instruction)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(dest >> 1, instruction.dest)
+      set_reg_by_address(instruction.dest, dest >> 1)
     end
 
     def exec_op_jmp(instruction)
+      dest = get_reg_by_address(instruction.dest)
+
+      # IP is immediately incremented
+      set_reg_by_address(@register_name_hash[:ip], dest - 1)
     end
 
-    def exec_op_breq(instruction)
+    def exec_op_je(instruction)
+      return if !get_flag(:eq)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
-    def exec_op_brne(instruction)
+    def exec_op_jne(instruction)
+      return if get_flag(:eq)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
-    def exec_op_brgt(instruction)
+    def exec_op_jg(instruction)
+      return if !get_flag(:gt)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
-    def exec_op_brge(instruction)
+    def exec_op_jge(instruction)
+      return if get_flag(:gt)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
-    def exec_op_brlt(instruction)
+    def exec_op_jl(instruction)
+      return if !get_flag(:lt)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
-    def exec_op_brle(instruction)
+    def exec_op_jle(instruction)
+      return if get_flag(:lt)
+
+      jmp_to_reg_by_address(instruction.dest)
+    end
+
+    def exec_op_jz(instruction)
+      return if !get_flag(:ze)
+
+      jmp_to_reg_by_address(instruction.dest)
+    end
+
+    def exec_op_jnz(instruction)
+      return if !get_flag(:ze)
+
+      jmp_to_reg_by_address(instruction.dest)
     end
 
     def exec_op_call(instruction)
+      dec_sp
+      @ram.write(reg_sp, get_reg_by_address(@register_name_hash[:ip]) + 1)
+
+      jmp_to_reg_by_address(instruction.dest)
+    end
+
+    def exec_op_calli(instruction)
+      dec_sp
+      @ram.write(reg_sp, get_reg_by_address(@register_name_hash[:ip]) + 1)
+
+      # IP is immediately incremented
+      set_reg_by_address(@register_name_hash[:ip], instruction.immediate - 1)
     end
 
     def exec_op_ret(instruction)
+      address = @ram.read(reg_sp)
+      inc_sp
+
+      # IP is immediately incremented
+      set_reg_by_address(@register_name_hash[:ip], address - 1)
     end
 
     def exec_op_hlt(instruction)
