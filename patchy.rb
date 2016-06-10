@@ -26,7 +26,7 @@ if opts.info
   opts[:instructions] = true
 end
 
-patchy = Patchy::CPU.new
+patchy = Patchy::CPU.new(opts.debug)
 rom_bin = nil
 
 trap "SIGINT" do

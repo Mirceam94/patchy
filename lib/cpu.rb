@@ -27,9 +27,9 @@ module Patchy
 
       puts "- Initializing CPU" if @debug
 
-      initialize_registers
       initialize_ram
       initialize_rom
+      initialize_registers
       initialize_instruction_debug_table
       initialize_register_debug_table
     end
@@ -78,6 +78,9 @@ module Patchy
       @register_name_hash.each do |key, val|
         @registers[key].address = val
       end
+
+      # Init stack pointer at end of RAM
+      @registers[:sp].bdata = @ram.size
     end
 
     def get_register_name_hash
