@@ -3,12 +3,15 @@ require "gosu"
 module Patchy
   class Renderer < Gosu::Window
     def initialize(input_q, output_q)
-      super 485, 485
+      super(485, 485, {
+        :update_interval => 33.3333333 # 30 fps
+      })
 
       @caption = "Patchy Renderer"
       @input_q = input_q
       @output_q = output_q
       @matrix_state = []
+      @dirty = true
 
       # Initialize display state (0bRGB)
       16.times do
@@ -35,6 +38,7 @@ module Patchy
     ###
     def set_px(x, y, col)
       @matrix_state[x][y] = col
+      @dirty = true
     end
 
     def draw
@@ -54,6 +58,18 @@ module Patchy
           Gosu.draw_rect(5 + (x * 30), 5 + (y * 30), 25, 25, color)
         end
       end
+
+      @dirty = false
+    end
+
+    ###
+    # Prevents the screen from being constantly redrawn. Ship our dirty flag to
+    # Gosu
+    #
+    # @return {Boolean} needs_redraw
+    ###
+    def needs_redraw?
+      @dirty
     end
 
     ###
