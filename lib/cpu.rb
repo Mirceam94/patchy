@@ -192,8 +192,13 @@ module Patchy
 
         # Cycle execution, with temporal padding
         @@frequencyHz.times do |i|
-          cycle_start = Time.now
 
+          # Update in/out registers
+          if !@renderer_output_q.empty?
+            handle_renderer_packet(@renderer_output_q.pop)
+          end
+
+          cycle_start = Time.now
           cycle_execute
 
           # Halt check in here as well
@@ -305,6 +310,58 @@ module Patchy
       @cycles += 1
     end
 
+    ###
+    # Routes renderer data packets to their respective handlers
+    #
+    # @param {Map} packet
+    ###
+    def handle_renderer_packet(packet)
+      case packet[:cmd]
+      when :btn_down then handle_renderer_btn_down(packet)
+      when :btn_up then handle_renderer_btn_up(packet)
+      end
+    end
+
+    ###
+    # Sets the corresponding bits in the input registers based on the pressed
+    # button.
+    #
+    # @param {Map} packet
+    ###
+    def handle_renderer_btn_down(packet)
+      bit = nil
+
+      case packet[:id]
+      when :w then bit = 0
+      when :s then bit = 1
+      when :esc then bit = 2
+      end
+
+      return if bit.nil?
+
+      @registers[:in1].bdata |= 1 << bit
+    end
+
+    ###
+    # Clears the corresponding bits in the input registers based on the pressed
+    # button.
+    #
+    # @param {Map} packet
+    ###
+    def handle_renderer_btn_up(packet)
+      bit = nil
+
+      case packet[:id]
+      when :w then bit = 0
+      when :s then bit = 1
+      when :esc then bit = 2
+      end
+
+      return if bit.nil?
+
+      @registers[:in1].bdata &= ~(1 << bit)
+    end
+
     def set_flag(flag, value)
       bit = nil
 
@@ -339,8 +396,12 @@ module Patchy
       raise "Unknown flag: #{flag}"
     end
 
-    def set_renderer_messenger(renderer_messenger)
-      @renderer_messenger = renderer_messenger
+    def set_renderer_input_q(renderer_input_q)
+      @renderer_input_q = renderer_input_q
+    end
+
+    def set_renderer_output_q(renderer_output_q)
+      @renderer_output_q = renderer_output_q
     end
 
     def inc_ip
@@ -376,6 +437,23 @@ module Patchy
       dest = get_reg_by_address(address)
 
       set_reg_by_address(@register_name_hash[:ip], dest - 1)
+    end
+
+    ###
+    # Updates the zero flag automatically based on the provided ALU result, and
+    # returns it.
+    #
+    # @param {Number} res
+    # @return {Number} res
+    ###
+    def flag_safe_alu_op(res)
+      if res == 0
+        set_flag(:ze, true)
+      else
+        set_flag(:ze, false)
+      end
+
+      res
     end
 
     def dump_core
@@ -430,7 +508,7 @@ module Patchy
     end
 
     def exec_op_spx(instruction)
-      return if @renderer_messenger == nil
+      return if @renderer_input_q == nil
 
       col = get_reg_by_address(instruction.src)
       address = get_reg_by_address(0x6) # 0x6 = PX
@@ -460,56 +538,38 @@ module Patchy
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      res = dest + src
-
-      if res == 0
-        set_flag(:ze, true)
-      else
-        set_flag(:ze, false)
-      end
-
-      set_reg_by_address(instruction.dest, res)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest + src)
+      )
     end
 
     def exec_op_addi(instruction)
       dest = get_reg_by_address(instruction.dest)
-      res = dest + instruction.immediate
 
-      if res == 0
-        set_flag(:ze, true)
-      else
-        set_flag(:ze, false)
-      end
-
-      set_reg_by_address(instruction.dest, res)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest + instruction.immediate)
+      )
     end
 
     def exec_op_sub(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      res = dest - src
-
-      if res == 0
-        set_flag(:ze, true)
-      else
-        set_flag(:ze, false)
-      end
-
-      set_reg_by_address(instruction.dest, res)
+      set_reg_by_address(
+        instruction.dest, 
+        flag_safe_alu_op(dest - src)
+      )
     end
 
     def exec_op_subi(instruction)
       dest = get_reg_by_address(instruction.dest)
-      res = dest - instruction.immediate
 
-      if res == 0
-        set_flag(:ze, true)
-      else
-        set_flag(:ze, false)
-      end
-
-      set_reg_by_address(instruction.dest, res)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest - instruction.immediate)
+      )
     end
 
     def exec_op_cmp(instruction)
@@ -529,33 +589,48 @@ module Patchy
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(instruction.dest, dest & src)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest & src)
+      )
     end
 
     def exec_op_or(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(instruction.dest, dest | src)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest | src)
+      )
     end
 
     def exec_op_xor(instruction)
       src = get_reg_by_address(instruction.src)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(instruction.dest, dest ^ src)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest ^ src)
+      )
     end
 
     def exec_op_shl(instruction)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(instruction.dest, dest << 1)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest << 1)
+      )
     end
 
     def exec_op_shr(instruction)
       dest = get_reg_by_address(instruction.dest)
 
-      set_reg_by_address(instruction.dest, dest >> 1)
+      set_reg_by_address(
+        instruction.dest,
+        flag_safe_alu_op(dest >> 1)
+      )
     end
 
     def exec_op_jmp(instruction)

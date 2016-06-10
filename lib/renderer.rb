@@ -2,11 +2,12 @@ require "gosu"
 
 module Patchy
   class Renderer < Gosu::Window
-    def initialize(messenger)
+    def initialize(input_q, output_q)
       super 485, 485
 
       @caption = "Patchy Renderer"
-      @messenger = messenger
+      @input_q = input_q
+      @output_q = output_q
       @matrix_state = []
 
       # Initialize display state (0bRGB)
@@ -16,8 +17,8 @@ module Patchy
     end
 
     def update
-      return if @messenger.empty?
-      packet = @messenger.pop
+      return if @input_q.empty?
+      packet = @input_q.pop
 
       case packet[:cmd]
       when :close then close
@@ -52,6 +53,38 @@ module Patchy
 
           Gosu.draw_rect(5 + (x * 30), 5 + (y * 30), 25, 25, color)
         end
+      end
+    end
+
+    ###
+    # Called when a key is pressed, enables the corresponding flag in the first
+    # input port.
+    #
+    # @param {Key} id
+    ###
+    def button_down(id)
+      if id == Gosu::KbW
+        @output_q.button_down(:w)
+      elsif id == Gosu::KbS
+        @output_q.button_down(:s)
+      elsif id == Gosu::KbEscape
+        @output_q.button_down(:esc)
+      end
+    end
+
+    ###
+    # Called when a key is pressed, disables the corresponding flag in the first
+    # input port.
+    #
+    # @param {Key} id
+    ###
+    def button_up(id)
+      if id == Gosu::KbW
+        @output_q.button_up(:w)
+      elsif id == Gosu::KbS
+        @output_q.button_up(:s)
+      elsif id == Gosu::KbEscape
+        @output_q.button_up(:esc)
       end
     end
   end

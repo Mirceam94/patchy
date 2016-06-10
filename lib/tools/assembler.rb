@@ -152,22 +152,6 @@ module Patchy
           args_s = line.sub(i[:mnemonic], "").strip
           args = args_s.split(",").map { |a| a.strip }
 
-          # CALL assembles to 4 instructions:
-          # MOV RET, IP
-          # ADDI RET, 4
-          # PUSH RET
-          # CALLI [LABEL]
-          if i[:mnemonic] == "call"
-            call_prog = [
-              assemble_instruction_str("mov RET, IP")[0],
-              assemble_instruction_str("addi RET, 4")[0],
-              assemble_instruction_str("push RET")[0],
-              assemble_instruction_str(line.sub("call", "calli"))[0]
-            ]
-
-            return call_prog
-          end
-
           # Because instructions can take up to two arguments, and the
           # first is always a destination while the second is always
           # a source, we can find them manually.
