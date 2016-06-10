@@ -10,14 +10,6 @@ module Patchy
     attr_reader :registers, :ram
     attr_accessor :needs_halt
 
-    # TODO: Move the clock out of the CPU, since we use it in the instruction
-    #       cache, and divide it by 8 for actual CPU-stepping
-    @@frequencyHz = 8000
-
-    def self.frequency
-      @@frequencyHz
-    end
-
     def initialize(debug=false)
       @debug = debug
       @halt = false
@@ -183,38 +175,17 @@ module Patchy
     end
 
     def run
-      puts "  Starting execution at #{@@frequencyHz}Hz" if @debug
-      cycle_max_time = 1.0 / @@frequencyHz
-
       loop do
-        break if @halt
-        start = Time.now
 
-        # Cycle execution, with temporal padding
-        @@frequencyHz.times do |i|
-
-          # Update in/out registers
-          if !@renderer_output_q.empty?
-            handle_renderer_packet(@renderer_output_q.pop)
-          end
-
-          cycle_start = Time.now
-          cycle_execute
-
-          # Halt check in here as well
-          break if @halt
-
-          # Pad! Note that we sleep with 99% of the needed time, since there
-          # is some overhead in doing so (8ms on my MBP)
-          cycle_elapsed = Time.now - cycle_start
-
-          if cycle_elapsed < cycle_max_time
-            sleep((cycle_max_time - cycle_elapsed) * 0.99)
-          end
+        # Update in/out registers
+        if !@renderer_output_q.empty?
+          handle_renderer_packet(@renderer_output_q.pop)
         end
 
-        elapsed = ((Time.now - start) * 1000000).to_i
-        puts "#{elapsed - 1000000}us overrun!" if elapsed > 1000000
+        cycle_execute
+
+        # Halt check
+        break if @halt
       end
 
     rescue Exception
