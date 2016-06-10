@@ -240,8 +240,6 @@ module Patchy
       when 0x03 then exec_op_ldm(instruction)
       when 0x04 then exec_op_lpx(instruction)
       when 0x05 then exec_op_spx(instruction)
-      when 0x06 then exec_op_out(instruction)
-      when 0x07 then exec_op_in(instruction)
       when 0x08 then exec_op_str(instruction)
       when 0x09 then exec_op_push(instruction)
       when 0x0A then exec_op_pop(instruction)
@@ -441,13 +439,7 @@ module Patchy
       x = address / 16
       y = address % 16
 
-      @renderer_messenger.set_px(x, y, col)
-    end
-
-    def exec_op_out(instruction)
-    end
-
-    def exec_op_in(instruction)
+      @renderer_input_q.set_px(x, y, col)
     end
 
     def exec_op_str(instruction)

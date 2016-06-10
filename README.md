@@ -52,7 +52,7 @@ This readme will be updated as the architecture is fleshed out.
 * 16 bit immediate
 
 The above allows for Patchy to have up to 256 instructions, and access up to 16
-registers. Currently there are 33 instructions, but this leaves plenty of room
+registers. Currently there are 31 instructions, but this leaves plenty of room
 for expansion. For the time being there are no immediate/RAM specialised
 instructions beyond Register<->RAM/I interaction, but in the future there is
 plenty of room left over for things like ADDI, INM, STRI, etc.
@@ -64,31 +64,29 @@ plenty of room left over for things like ADDI, INM, STRI, etc.
 * 0x03 ldm Rd       Load RAM value into Rd (address set by DP)
 * 0x04 lpx Rd       Reads current VRAM value at the address in PX into Rd
 * 0x05 spx Rs       Loads bottom 3 bits of Rs into VRAM at the address in PX
-* 0x06 out Rs, Pd   Writes value in Rs to port Pd
-* 0x07 in Rd, Ps    Reads Ps value into Rd
-* 0x08 str Rs       Copy value in Rs into RAM (address set by DP)
-* 0x09 push Rs      Push Rs register value onto stack, decrement SP
-* 0x0A pop Rd       Pop top stack value into Rd, increment SP
-* 0x0B add Rd, Rs   Rd = Rd + Rs
-* 0x0C addi Rd, I   Rd = Rd + I
-* 0x0D sub Rd, Rs   Rd = Rd - Rs
-* 0x0E subi Rd, I   Rd = Rd - I
-* 0x0F cmp Ra, Rb   Compare Ra and Rb, updates FLGS register
-* 0x10 and Rd, Rs   Rd = Rd & Rs
-* 0x11 or Rd, Rs    Rd = Rd | Rs
-* 0x12 xor Rd, Rs   Rd = Rd ^ Rs
-* 0x13 shl Rd       Shifts Rd left in place
-* 0x14 shr Rd       Shifts Rd right in place
-* 0x15 jmp Ra       Jumps to address in Ra
-* 0x16 je Ra        Jump if == to address in Ra
-* 0x17 jne Ra       Jump if != to address in Ra
-* 0x18 jg Ra        Jump if >  to address in Ra
-* 0x19 jge Ra       Jump if >= to address in Ra
-* 0x1A jl Ra        Jump if <  to address in Ra
-* 0x1B jle Ra       Jump if <= to address in Ra
-* 0x1C jz Ra        Jump if 0 to address in Ra
-* 0x1D jnz Ra       Jump if !0 to the address in Ra
-* 0x1E call Ra      Push IP onto stack, and jump to address in Ra
-* 0x1F calli I      Push IP onto stack, and jump to immediate address
-* 0x20 ret          Alias for pop IP
+* 0x06 str Rs       Copy value in Rs into RAM (address set by DP)
+* 0x07 push Rs      Push Rs register value onto stack, decrement SP
+* 0x08 pop Rd       Pop top stack value into Rd, increment SP
+* 0x09 add Rd, Rs   Rd = Rd + Rs
+* 0x0A addi Rd, I   Rd = Rd + I
+* 0x0B sub Rd, Rs   Rd = Rd - Rs
+* 0x0C subi Rd, I   Rd = Rd - I
+* 0x0D cmp Ra, Rb   Compare Ra and Rb, updates FLGS register
+* 0x0E and Rd, Rs   Rd = Rd & Rs
+* 0x0F or Rd, Rs    Rd = Rd | Rs
+* 0x10 xor Rd, Rs   Rd = Rd ^ Rs
+* 0x11 shl Rd       Shifts Rd left in place
+* 0x12 shr Rd       Shifts Rd right in place
+* 0x13 jmp Ra       Jumps to address in Ra
+* 0x14 je Ra        Jump if == to address in Ra
+* 0x15 jne Ra       Jump if != to address in Ra
+* 0x16 jg Ra        Jump if >  to address in Ra
+* 0x17 jge Ra       Jump if >= to address in Ra
+* 0x18 jl Ra        Jump if <  to address in Ra
+* 0x19 jle Ra       Jump if <= to address in Ra
+* 0x1A jz Ra        Jump if 0 to address in Ra
+* 0x1B jnz Ra       Jump if !0 to the address in Ra
+* 0x1C call Ra      Push IP onto stack, and jump to address in Ra
+* 0x1D calli I      Push IP onto stack, and jump to immediate address
+* 0x1E ret          Alias for pop IP
 * 0xFF hlt          Halt

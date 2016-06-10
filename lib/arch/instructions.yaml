@@ -56,32 +56,10 @@
       - :type: register
         :name: "source"
 
-  - :name: "Writes value in Rs to port Pd"
-    :desc: "Rs -> Pd"
-    :mnemonic: "out"
-    :op: 0x06
-    :args:
-      - :type: register
-        :name: "source"
-
-      - :type: port
-        :name: "destination"
-
-  - :name: "Reads Ps value into Rd"
-    :desc: "Ps -> Rd"
-    :mnemonic: "in"
-    :op: 0x07
-    :args:
-      - :type: port
-        :name: "source"
-
-      - :type: register
-        :name: "destination"
-
   - :name: "Store RAM[DP] into Rs"
     :desc: "RAM[DP] -> Rs"
     :mnemonic: "str"
-    :op: 0x08
+    :op: 0x06
     :args:
       - :type: register
         :name: "source"
@@ -90,7 +68,7 @@
   - :name: "Push register Rs onto stack"
     :desc: "Rs -> RAM[SP], SP--"
     :mnemonic: "push"
-    :op: 0x09
+    :op: 0x07
     :args:
       - :type: register
         :name: "source"
@@ -98,7 +76,7 @@
   - :name: "Pop stack contents into register Rd"
     :desc: "RAM[SP] -> Rd, SP++"
     :mnemonic: "pop"
-    :op: 0x0A
+    :op: 0x08
     :args:
       - :type: register
         :name: "destination"
@@ -107,7 +85,7 @@
   - :name: "Add registers"
     :desc: "Rd = Rd + Rs"
     :mnemonic: "add"
-    :op: 0x0B
+    :op: 0x09
     :args:
       - :type: register
         :name: "destination"
@@ -118,7 +96,7 @@
   - :name: "Add register and immediate"
     :desc: "Rd = Rd + I"
     :mnemonic: "addi"
-    :op: 0x0C
+    :op: 0x0A
     :args:
       - :type: register
         :name: "destination"
@@ -129,7 +107,7 @@
   - :name: "Subtract registers"
     :desc: "Rd = Rd - Rs"
     :mnemonic: "sub"
-    :op: 0x0D
+    :op: 0x0B
     :args:
       - :type: register
         :name: "destination"
@@ -140,7 +118,7 @@
   - :name: "Subtract immediate from register"
     :desc: "Rd = Rd - I"
     :mnemonic: "subi"
-    :op: 0x0E
+    :op: 0x0C
     :args:
       - :type: register
         :name: "destination"
@@ -150,7 +128,7 @@
 
   - :name: "Compare registers"
     :mnemonic: "cmp"
-    :op: 0x0F
+    :op: 0x0D
     :args:
       - :type: register
         :name: "register a"
@@ -161,7 +139,7 @@
   - :name: "AND registers"
     :desc: "Rd = Rd & Rs"
     :mnemonic: "and"
-    :op: 0x10
+    :op: 0x0E
     :args:
       - :type: register
         :name: "destination"
@@ -172,7 +150,7 @@
   - :name: "OR registers"
     :desc: "Rd = Rd | Rs"
     :mnemonic: "or"
-    :op: 0x11
+    :op: 0x0F
     :args:
       - :type: register
         :name: "destination"
@@ -183,7 +161,7 @@
   - :name: "XOR registers"
     :desc: "Rd = Rd ^ Rs"
     :mnemonic: "xor"
-    :op: 0x12
+    :op: 0x10
     :args:
       - :type: register
         :name: "destination"
@@ -194,7 +172,7 @@
   - :name: "Shift left"
     :desc: "Shifts Rd left in place"
     :mnemonic: "shl"
-    :op: 0x13
+    :op: 0x11
     :args:
       - :type: register
         :name: "destination"
@@ -202,7 +180,7 @@
   - :name: "Shift right"
     :desc: "Shifts Rd right in place"
     :mnemonic: "shr"
-    :op: 0x14
+    :op: 0x12
     :args:
       - :type: register
         :name: "destination"
@@ -211,7 +189,7 @@
   - :name: "Jump"
     :desc: "Jump to address in Ra"
     :mnemonic: "jmp"
-    :op: 0x15
+    :op: 0x13
     :args:
       - :type: register
         :name: "target address"
@@ -219,7 +197,7 @@
   - :name: "Jump if =="
     :desc: "If equal, jump to address in Ra"
     :mnemonic: "je"
-    :op: 0x16
+    :op: 0x14
     :args:
       - :type: register
         :name: "target address"
@@ -227,7 +205,7 @@
   - :name: "Jump if !="
     :desc: "If not equal, jump to address in Ra"
     :mnemonic: "jne"
-    :op: 0x17
+    :op: 0x15
     :args:
       - :type: register
         :name: "target address"
@@ -235,7 +213,7 @@
   - :name: "Jump if >"
     :desc: "If greater than, jump to address in Ra"
     :mnemonic: "jg"
-    :op: 0x18
+    :op: 0x16
     :args:
       - :type: register
         :name: "target address"
@@ -243,7 +221,7 @@
   - :name: "Jump if >="
     :desc: "If greater than or equal, jump to address in Ra"
     :mnemonic: "jge"
-    :op: 0x19
+    :op: 0x17
     :args:
       - :type: register
         :name: "target address"
@@ -251,7 +229,7 @@
   - :name: "Jump if <"
     :desc: "If less than, jump to address in Ra"
     :mnemonic: "jl"
-    :op: 0x1A
+    :op: 0x18
     :args:
       - :type: register
         :name: "target address"
@@ -259,7 +237,7 @@
   - :name: "Jump if <="
     :desc: "If less than or equal, jump to address in Ra"
     :mnemonic: "jle"
-    :op: 0x1B
+    :op: 0x19
     :args:
       - :type: register
         :name: "target address"
@@ -267,7 +245,7 @@
   - :name: "Jump if 0"
     :desc: "If 0, jump to address in Ra"
     :mnemonic: "jz"
-    :op: 0x1C
+    :op: 0x1A
     :args:
       - :type: register
         :name: "target address"
@@ -275,7 +253,7 @@
   - :name: "Jump if !0"
     :desc: "If not 0, jump to address in Ra"
     :mnemonic: "jnz"
-    :op: 0x1D
+    :op: 0x1B
     :args:
       - :type: register
         :name: "target address"
@@ -283,7 +261,7 @@
   - :name: "Call"
     :desc: "Push IP onto stack, and jump to address in Ra"
     :mnemonic: "call"
-    :op: 0x1E
+    :op: 0x1C
     :args:
       - :type: register
         :name: "target address"
@@ -291,7 +269,7 @@
   - :name: "Call immediate"
     :desc: "Push IP onto stack, and jump to immediate address"
     :mnemonic: "calli"
-    :op: 0x1F
+    :op: 0x1D
     :args:
       - :type: immediate
         :name: "immediate"
@@ -299,4 +277,4 @@
   - :name: "Return"
     :desc: "Alias for pop IP"
     :mnemonic: "ret"
-    :op: 0x20
+    :op: 0x1E
