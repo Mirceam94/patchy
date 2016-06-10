@@ -1,134 +1,180 @@
-; The display consists of 256 individual RGB LEDs, organised in a 16x16 grid
-; 3 bits are used per LED, in the format 0bRGB:
-; 0b001: blue
-; 0b110: red, green
-; etc ...
-;
-; 3*256 = 768 bits = 96 bytes required to represent the entire display
-; 6 bytes per column, 16 columns
-;
-; PX - register used for pixel address into VRAM
-;
-; lpx <reg> - load bottom 3 bits of reg into current pixel address
-; mpx <reg> - read current pixel value into bottom 3 bits of reg
-; fsp - framebuffer swap, switches active framebuffer
+ldi D, 6     # Initial player paddle Y coord
+ldi E, 6     # Initial CPU paddle Y coord
 
-; Draws a paddle, performs no sanity/bounds checks
-;
-; @param {B} color
-; @param {C} x coord
-; @param {D} y coord
-draw_paddle:
-  call resolve_px ; Sets up PX
+ldi c, 0b001 # Draw color
 
-  ; Set pixels to the requested color
-  lpx B
-  inc PX
-  lpx B
-  inc PX
-  lpx B
+# Draw player paddle with x = 1
+ldi a, 1
+mov b, d
+calli [draw_paddle]
 
-  ret
+# Draw CPU paddle with x = 14
+ldi a, 14
+mov b, e
+calli [draw_paddle]
 
-; Draw the ball
-;
-; @param {B} color
-; @param {C} x coord
-; @param {D} y coord
-draw_ball:
-  call set_px
-  ret
+main_loop:
 
-; Set a pixel to a specific color
-;
-; @param {B} color
-; @param {C} x coord
-; @param {D} y coord
-set_px:
-  call resolve_px ; Sets up PX
+  # Check/handle W keypress
+  ldi a, [_check_s_keypress]
+  ldi f, 0b001
+  and f, in1
+  jz a
+  calli [handle_w_press]
 
-  lpx B
+_check_s_keypress:
 
-  ret
+  # Check/handle S keypress
+  ldi a, [_check_esc_keypress]
+  ldi f, 0b010
+  and f, in1
+  jz a
+  calli [handle_s_press]
 
-; Sets the PX reg to target a specific x, y screen coordinate
-; ([SP] * 16) + [SP + 1] -> PX
-;
-; @param {C} x coord
-; @param {D} y coord
-resolve_px:
+_check_esc_keypress:
 
-  ; First, resolve X,Y start position
-  ; Start by resolving column memory address
-  xor A, A               ; Zero out reg A to use as column address
-  jz C, _end_mul_resolve_px ; If C (x coord) is 0, continue
-
-_do_mul_resolve_px:
-  addi A, 0xf            ; Advance column by 1 (2 bytes)
-  dec  C                 ; Decrement reg C
-  jz C, _end_mul_resolve_px ; If C is 0, finish
-  jmp _do_mul_resolve_px    ; else, repeat
-
-  ; At this point, reg A points to the first pixel in the requested column
-_end_mul_resolve_px:
-  add A, D      ; Add Y coord to select target pixel in column
-  mov PX, A     ; Copy A into pixel address reg
-  ret
-
-; Start of the actual pong game (no frame speed limitation, very naive!)
-;
-; E - stores paddle y-coords for both players as 0bAAAABBBB (players A & B)
-; F - stores ball x, y-coords as 0bXXXXYYYY
-; G - stores ball velocity vector as 0bUR
-;     0b00: down + left
-;     0b01: down + right
-;     0b10: up + left
-;     0b11: up + right
-main:
-  ldi E, 0b01100110 ; Both players start at y-coord 6 ((16/2) - 2)
-  ldi F, 0b01110111 ; Center the ball at (7, 7)
+  # Check/handle ESC keypress
+  ldi a, [_do_loop]
+  ldi f, 0b100
+  and f, in1
+  jz a
+  calli [handle_esc_press]
 
 _do_loop:
-  mov C, IN         ; Read input register
 
-__check_player_a_down:
-  mov A, C
-  andi A, 0b1       ; Mask player A down button
-  jz A, __check_player_a_up
-  call move_player_a_down
+  ldi f, [main_loop]
+  jmp f
 
-__check_player_a_up:
-  mov A, C
-  andi A, 0b10      ; Mask player A up button
-  jz A, __check_player_b_down
-  call move_player_a_up
+hlt
 
-__check_player_b_down:
-  mov A, C
-  andi A, 0b100     ; Mask player B down button
-  jz A, __check_player_b_up
-  call move_player_b_down
+# Moves the player's paddle down by 1px if possible, and clears the pixel
+# immediately above it
+handle_w_press:
+  push a
+  push b
+  push c
+  push f
 
-__check_player_b_up:
-  mov A, C
-  andi A, 0b1000    ; Mask player B up button
-  jz A, _do_ball_v_coll
-  call move_player_b_up
+  ldi f, [_done_handling_w]
 
-; Handle vertical ball (non-player) collisions
-_do_ball_v_coll:
-  mov A, F
-  mov B, G
+  addi d, 0
+  jz f        # Paddle already at the top, can't go further
 
-  andi A, 0b00001111 ; Grab only the Y coords
-  andi B, 0b10       ; Grab vertical velocity
+  # Unset bottom paddle pixel
+  ldi a, 1
+  mov b, d
+  addi b, 2
+  ldi c, 0
+  calli [resolve_px]
+  spx c
 
-  jnz A, __check_ball_bottom_coll ; Ball isn't at the top of the col -> skip
-  jz B, __check_ball_bottom_coll  ; Ball isn't moving upwards -> skip
+  # Move paddle up
+  subi d, 1
 
-  ; At this point, the ball is both at the top of the screen, and still rising
-  andi G, 0b01        ; Zero out the vertical component, keep horizontal
-  jmp _do_ball_h_coll ; Check for horizontal collisions
+  # Set new paddle top pixel
+  subi px, 3
+  ldi c, 0b001 # draw color
+  spx c
 
-__check_ball_bottom_coll:
-  cmpi A, 0b1111
+  _done_handling_w:
+    pop f
+    pop c
+    pop b
+    pop a
+    ret
+
+# Moves the player's paddle up by 1px if possible, and clears the pixel
+# immediately below it
+handle_s_press:
+  push a
+  push b
+  push c
+  push f
+
+  ldi f, [_done_handling_s]
+
+  ldi a, 0xd
+  cmp a, d
+  je f # Paddle already at the bottom, can't go further
+
+  # Unset top paddle pixel
+  ldi a, 1
+  mov b, d
+  ldi c, 0
+  calli [resolve_px]
+  spx c
+
+  # Move paddle down
+  addi d, 1
+
+  # Set new paddle bottom pixel
+  addi px, 3
+  ldi c, 0b001 # draw color
+  spx c
+
+  _done_handling_s:
+    pop f
+    pop c
+    pop b
+    pop a
+    ret
+
+# Stops everything! :D
+handle_esc_press:
+  hlt
+  ret # Just to be sure. One can never be sure.
+
+# Draws a 1x3 paddle at the coords in A, B with the color in C
+#
+# @param {A} x coord
+# @param {B} y coord
+# @param {C} color
+draw_paddle:
+  push PX
+
+  calli [resolve_px]
+  spx C
+  addi PX, 1
+  spx C
+  addi PX, 1
+  spx C
+
+  pop PX
+  ret
+
+# Sets the PX reg to target a specific x, y screen coordinate
+# (B * 16) + [A + 1] -> PX
+#
+# @param {A} x coord
+# @param {B} y coord
+resolve_px:
+  push C
+  push E
+  push F
+  
+  # Load up addresses, we don't yet support jumping to immediate
+  ldi E, [_end_mul_resolve_px]
+  ldi F, [_do_mul_resolve_px]
+
+  # First, resolve X, Y start position
+  # Start by resolving column memory address
+  xor C, C                    # Zero out reg C to use as column address
+  addi A, 0                   # Touch ALU to set zero flag
+  jz E                        # If A (x coord) is 0, continue
+
+  _do_mul_resolve_px:
+    addi C, 0x10                 # Advance column by 1 (2 bytes)
+    subi A, 1                   # Decrement reg A
+    jz E                        # If A is 0, finish
+    jmp F                       # else, repeat
+
+  # At this point, reg A points to the first pixel in the requested column
+  _end_mul_resolve_px:
+    add C, B      # Add Y coord to select target pixel in column
+    mov PX, C     # Copy A into pixel address reg
+
+    pop F
+    pop E
+    pop C
+
+    ret
