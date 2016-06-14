@@ -46,7 +46,7 @@ elsif opts.assemble
   assembler.display_summary(rom_bin)
 
   if !opts.run
-    out_file = File.open(opts.out, "w")
+    out_file = File.open(opts.out, "wb")
     rom_bin.each {|i| i.write(out_file)}
     puts "  Wrote to #{opts.out}\n\n"
   end
@@ -54,9 +54,26 @@ elsif opts.assemble
 # Load binary file directly
 else
   begin
-    rom_bin = File.open(ARGV.first, "r")
-  rescue
-    puts "Failed to read #{ARGV.first}"
+    rom_bin = []
+
+    File.open(ARGV.first, "rb") do |in_file|
+      while(chunk = in_file.read(4)) do
+        chunk = chunk.unpack("V")[0]
+
+        instruction = Patchy::CPU::Instruction.new(
+          opcode: chunk & 0xFF,
+          dest: (chunk >> 8) & 0xF,
+          src:  (chunk >> 12) & 0xF,
+          immediate: chunk >> 16
+        )
+
+        rom_bin.push(instruction)
+      end
+    end
+
+  rescue Exception => e
+    puts "Failed to read #{ARGV.first} [#{e}]"
+    raise e
   end
 end
 
@@ -79,7 +96,7 @@ renderer_input_q = nil
 renderer_output_q = nil
 
 # messenger used to communicate between threads
-unless opts.headless 
+unless opts.headless
   require "lib/renderer_messenger"
   require "lib/cpu_messenger"
 

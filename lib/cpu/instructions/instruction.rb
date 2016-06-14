@@ -6,15 +6,13 @@ module Patchy
     # Stored as Opcode-Dest-Src-Immediate
     # Or 00000000-0000-0000-0000000000000000
     class Instruction < BinData::Record
-      endian :little
-
-      bit8 :opcode
-      bit4 :dest
-      bit4 :src
+      bit8le :opcode
+      bit4le :dest
+      bit4le :src
 
       # Addresses are stored in the immediate
       # Ports are stored in the lower 8 bits of the immediate
-      bit16 :immediate
+      bit16le :immediate
     end
   end
 end
